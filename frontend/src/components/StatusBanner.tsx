@@ -14,10 +14,10 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({ health }) => {
           <Layers size={24} />
         </div>
         <div>
-          <div className="banner-title">Phase 1: Project Foundation &amp; Architecture Shell</div>
+          <div className="banner-title">Attention Digital Twin &mdash; Counterfactual Analytics Engine</div>
           <div className="banner-desc">
             FastAPI REST backend with SQLite persistence, React 18 TypeScript frontend with Vite proxy,
-            and local scikit-learn counterfactual engine. External LLMs remain strictly optional.
+            and local scikit-learn action-aware counterfactual comparison engine. External LLMs remain optional.
           </div>
         </div>
       </div>
