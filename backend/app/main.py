@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.session import init_db
-from app.api.routes import health, events, ml
+from app.api.routes import health, events, ml, counterfactuals
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(health.router, prefix="", tags=["health"])
 app.include_router(events.router, prefix="/api", tags=["events"])
 app.include_router(ml.router, prefix="/api", tags=["models"])
+app.include_router(counterfactuals.router, prefix="/api", tags=["counterfactuals"])
 
 
 @app.get("/")

@@ -1,0 +1,215 @@
+{
+  "model_version": "action_aware_v1.0.0",
+  "model_name": "RandomForestClassifier",
+  "target_variable": "opened_within_5min",
+  "target_definition": "1 if notification opened within 5 minutes, 0 if delayed or ignored",
+  "data_provenance": "SYNTHETIC_DEVELOPMENT_DATA (CASCADE 2026 Simulation)",
+  "disclaimer": "This action-aware model was trained on synthetic simulation data to demonstrate counterfactual evaluation. It must not be interpreted as a proven causal effect or verified attention prediction.",
+  "feature_names": [
+    "source_app",
+    "app_category",
+    "notification_category",
+    "focus_mode",
+    "proposed_action",
+    "text_length",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "is_focus_session",
+    "recent_notification_count_15m",
+    "minutes_since_last_notification",
+    "notification_load_1h",
+    "app_historical_open_rate",
+    "app_historical_ignore_rate",
+    "user_historical_open_rate",
+    "recent_allow_rate_1h",
+    "recent_suppress_rate_1h"
+  ],
+  "categorical_features": [
+    "source_app",
+    "app_category",
+    "notification_category",
+    "focus_mode",
+    "proposed_action"
+  ],
+  "numeric_features": [
+    "text_length",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "is_focus_session",
+    "recent_notification_count_15m",
+    "minutes_since_last_notification",
+    "notification_load_1h",
+    "app_historical_open_rate",
+    "app_historical_ignore_rate",
+    "user_historical_open_rate",
+    "recent_allow_rate_1h",
+    "recent_suppress_rate_1h"
+  ],
+  "num_training_rows": 6400,
+  "num_test_rows": 1600,
+  "split_metadata": {
+    "strategy": "chronological_split",
+    "train_ratio": 0.8,
+    "train_rows": 6400,
+    "test_rows": 1600,
+    "train_time_range": [
+      "2026-10-01T08:00:58.210663+00:00",
+      "2026-10-12T20:14:27.743197+00:00"
+    ],
+    "test_time_range": [
+      "2026-10-12T01:31:07.066230+00:00",
+      "2026-10-15T07:59:26.309456+00:00"
+    ],
+    "description": "Splits each user's event timeline into 80% past history for training and 20% future events for evaluation."
+  },
+  "overall_metrics": {
+    "count": 1600,
+    "accuracy": 0.714375,
+    "precision": 0.7347826086956522,
+    "recall": 0.2991150442477876,
+    "f1": 0.42515723270440253,
+    "confusion_matrix": [
+      [
+        974,
+        61
+      ],
+      [
+        396,
+        169
+      ]
+    ],
+    "roc_auc": 0.7698448121072207
+  },
+  "per_action_metrics": {
+    "allow": {
+      "count": 1114,
+      "accuracy": 0.644524236983842,
+      "precision": 0.7339449541284404,
+      "recall": 0.321285140562249,
+      "f1": 0.44692737430167595,
+      "confusion_matrix": [
+        [
+          558,
+          58
+        ],
+        [
+          338,
+          160
+        ]
+      ],
+      "roc_auc": 0.6974847441714911
+    },
+    "defer": {
+      "count": 343,
+      "accuracy": 0.8571428571428571,
+      "precision": 0.8,
+      "recall": 0.14545454545454545,
+      "f1": 0.24615384615384617,
+      "confusion_matrix": [
+        [
+          286,
+          2
+        ],
+        [
+          47,
+          8
+        ]
+      ],
+      "roc_auc": 0.7204545454545455
+    },
+    "suppress": {
+      "count": 143,
+      "accuracy": 0.916083916083916,
+      "precision": 0.5,
+      "recall": 0.08333333333333333,
+      "f1": 0.14285714285714285,
+      "confusion_matrix": [
+        [
+          130,
+          1
+        ],
+        [
+          11,
+          1
+        ]
+      ],
+      "roc_auc": 0.7118320610687023
+    }
+  },
+  "action_class_distribution": {
+    "allow": {
+      "total_count": 5557,
+      "positive_open_rate": 0.4331,
+      "negative_rate": 0.5669
+    },
+    "defer": {
+      "total_count": 1715,
+      "positive_open_rate": 0.1784,
+      "negative_rate": 0.8216
+    },
+    "suppress": {
+      "total_count": 728,
+      "positive_open_rate": 0.0838,
+      "negative_rate": 0.9162
+    }
+  },
+  "comparison": {
+    "dummy_baseline": {
+      "count": 1600,
+      "accuracy": 0.646875,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "confusion_matrix": [
+        [
+          1035,
+          0
+        ],
+        [
+          565,
+          0
+        ]
+      ],
+      "roc_auc": null
+    },
+    "logistic_regression": {
+      "count": 1600,
+      "accuracy": 0.72125,
+      "precision": 0.7117437722419929,
+      "recall": 0.35398230088495575,
+      "f1": 0.4728132387706856,
+      "confusion_matrix": [
+        [
+          954,
+          81
+        ],
+        [
+          365,
+          200
+        ]
+      ],
+      "roc_auc": 0.7718797828224531
+    },
+    "random_forest": {
+      "count": 1600,
+      "accuracy": 0.714375,
+      "precision": 0.7347826086956522,
+      "recall": 0.2991150442477876,
+      "f1": 0.42515723270440253,
+      "confusion_matrix": [
+        [
+          974,
+          61
+        ],
+        [
+          396,
+          169
+        ]
+      ],
+      "roc_auc": 0.7698448121072207
+    }
+  },
+  "trained_at": "2026-10-25T11:48:48.805634+00:00"
+}
