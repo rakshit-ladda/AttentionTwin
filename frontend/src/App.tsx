@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import { StatusBanner } from './components/StatusBanner';
-import { PlaceholderSection } from './components/PlaceholderSection';
+import { AttentionProfile } from './components/AttentionProfile';
+import { NotificationSimulator } from './components/NotificationSimulator';
+import { CounterfactualComparison } from './components/CounterfactualComparison';
+import { HistoryPanel } from './components/HistoryPanel';
 import { NavTab, HealthStatus } from './types';
 import './App.css';
 
@@ -53,7 +56,10 @@ export const App: React.FC = () => {
 
       <main className="app-main">
         <StatusBanner health={health} />
-        <PlaceholderSection tab={activeTab} />
+        {activeTab === 'profile' && <AttentionProfile />}
+        {activeTab === 'simulator' && <NotificationSimulator />}
+        {activeTab === 'counterfactual' && <CounterfactualComparison />}
+        {activeTab === 'history' && <HistoryPanel />}
       </main>
 
       <footer className="app-footer">
