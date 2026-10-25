@@ -24,6 +24,12 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
             <CheckCircle2 size={13} /> Connected
           </span>
         );
+      case 'local':
+        return (
+          <span style={{ color: 'var(--accent-emerald)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <CheckCircle2 size={13} /> On-device
+          </span>
+        );
       case 'checking':
         return (
           <span style={{ color: 'var(--accent-amber)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -56,10 +62,11 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
           <Layers size={24} />
         </div>
         <div className="banner-text-block">
-          <div className="banner-title">Attention Digital Twin &mdash; Counterfactual Analytics Engine</div>
+          <div className="banner-title">AttentionTwin &mdash; {health.status === 'local' ? 'On-device runtime' : 'Counterfactual Analytics Engine'}</div>
           <div className="banner-desc">
-            FastAPI REST backend with SQLite persistence, React 18 TypeScript frontend,
-            and local scikit-learn action-aware counterfactual comparison engine. External LLMs remain optional.
+            {health.status === 'local'
+              ? 'Runs without the laptop backend. Offline guidance uses conservative rules, not a trained personal model; notification decisions require your confirmation.'
+              : 'FastAPI REST backend with SQLite persistence, React 18 TypeScript frontend, and a scikit-learn comparison engine.'}
           </div>
         </div>
       </div>
@@ -107,7 +114,7 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
 
       <div className="banner-stats">
         <div className="stat-chip">
-          <div className="stat-label">{isNative ? 'Backend Link' : 'API Connection'}</div>
+          <div className="stat-label">{health.status === 'local' ? 'Runtime' : isNative ? 'Backend Link' : 'API Connection'}</div>
           <div className="stat-value">{renderStatusValue()}</div>
         </div>
 

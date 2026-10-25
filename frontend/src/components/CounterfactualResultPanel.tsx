@@ -59,9 +59,10 @@ const CustomTooltip = ({ active, payload, label }: {
 };
 
 export const CounterfactualResultPanel: React.FC<Props> = ({ result }) => {
+  const isOfflineRules = result.model_version.startsWith('offline-rules');
   const chartData = result.scenarios.map((s) => ({
     action: s.proposed_action,
-    probability: s.probability_opened_quickly,
+    probability: s.probability_opened_quickly ?? 0,
     label: s.predicted_label,
     risk: s.expected_interruption_risk,
   }));
@@ -80,7 +81,8 @@ export const CounterfactualResultPanel: React.FC<Props> = ({ result }) => {
           <div className="rec-policy-header">
             <Sparkles size={16} className="indigo" />
             <span>
-              Recommended Policy: <strong style={{ color: ACTION_COLORS[result.recommended_action] }}>
+              {isOfflineRules ? 'Offline guidance (not automatic): ' : 'Recommended Policy: '}
+              <strong style={{ color: ACTION_COLORS[result.recommended_action] }}>
                 {result.recommended_action.toUpperCase()}
               </strong>
             </span>
@@ -90,7 +92,12 @@ export const CounterfactualResultPanel: React.FC<Props> = ({ result }) => {
       )}
 
       {/* Chart */}
-      <div className="cf-chart-wrap">
+      {isOfflineRules ? (
+        <div className="cf-summary-box">
+          <div className="cf-summary-title">Personal prediction unavailable</div>
+          <p className="cf-summary-text">This phone has no labeled personal outcomes yet, so it does not invent an opening probability or duration estimate.</p>
+        </div>
+      ) : <div className="cf-chart-wrap">
         <div className="chart-label">P(opened quickly) by action</div>
         <ResponsiveContainer width="100%" height={210}>
           <BarChart data={chartData} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}>
@@ -119,7 +126,7 @@ export const CounterfactualResultPanel: React.FC<Props> = ({ result }) => {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </div>}
 
       {/* Scenario cards */}
       <div className="cf-scenario-grid">
@@ -151,16 +158,16 @@ export const CounterfactualResultPanel: React.FC<Props> = ({ result }) => {
               {/* Main Probability */}
               <div className="cf-prob-row">
                 <span className="cf-prob-val">
-                  {(s.probability_opened_quickly * 100).toFixed(1)}%
+                  {s.probability_opened_quickly == null ? '—' : `${(s.probability_opened_quickly * 100).toFixed(1)}%`}
                 </span>
-                <span className="cf-prob-label">P(opened quickly)</span>
+                <span className="cf-prob-label">{s.probability_opened_quickly == null ? 'not estimated' : 'P(opened quickly)'}</span>
               </div>
 
               <div className="cf-prob-bar-bg">
                 <div
                   className="cf-prob-bar-fill"
                   style={{
-                    width: `${(s.probability_opened_quickly * 100).toFixed(1)}%`,
+                    width: `${((s.probability_opened_quickly ?? 0) * 100).toFixed(1)}%`,
                     background: ACTION_COLORS[s.proposed_action],
                   }}
                 />
@@ -171,25 +178,27 @@ export const CounterfactualResultPanel: React.FC<Props> = ({ result }) => {
                 <div className="cf-metric-row total-loss">
                   <span className="cf-metric-name">Interruption Duration:</span>
                   <span className="cf-metric-val mono">
-                    {s.estimated_interruption_minutes.toFixed(1)} min
+                    {s.estimated_interruption_minutes == null ? 'Not estimated' : `${s.estimated_interruption_minutes.toFixed(1)} min`}
                   </span>
                 </div>
                 <div className="cf-metric-row">
                   <span className="cf-metric-name">Time Spent Browsing:</span>
                   <span className="cf-metric-val mono">
-                    {s.estimated_browsing_minutes.toFixed(1)} min
+                    {s.estimated_browsing_minutes == null ? 'Not estimated' : `${s.estimated_browsing_minutes.toFixed(1)} min`}
                   </span>
                 </div>
                 <div className="cf-metric-row">
                   <span className="cf-metric-name">Task-Resumption Delay:</span>
                   <span className="cf-metric-val mono">
-                    {s.estimated_resumption_delay_minutes.toFixed(1)} min
+                    {s.estimated_resumption_delay_minutes == null ? 'Not estimated' : `${s.estimated_resumption_delay_minutes.toFixed(1)} min`}
                   </span>
                 </div>
                 <div className="cf-metric-row">
                   <span className="cf-metric-name">Delivery Schedule:</span>
                   <span className="cf-metric-val mono">
-                    {s.deferred_delivery_minutes
+                    {s.proposed_action === 'defer' && isOfflineRules
+                      ? 'At configured break, if selected'
+                      : s.deferred_delivery_minutes
                       ? `+${s.deferred_delivery_minutes}m (Break)`
                       : s.proposed_action === 'suppress'
                       ? 'Silent Digest'

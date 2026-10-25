@@ -1,8 +1,16 @@
 /**
  * AttentionTwin API Client
- * Typed wrappers around all backend REST endpoints.
- * All requests go through the Vite proxy at /api/*.
+ * Typed wrappers for optional FastAPI endpoints and the native offline runtime.
+ * Browser development uses the Vite /api proxy; Android can fall back locally.
  */
+import {
+  compareOffline,
+  createOfflineEvent,
+  getOfflineEventHistory,
+  listOfflineEvents,
+  offlineHealth,
+  offlineModelStatus,
+} from './native/offlineRuntime';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -98,13 +106,13 @@ export interface CounterfactualScenarioResult {
   proposed_action: string;
   predicted_class: number;
   predicted_label: string;
-  probability_opened_quickly: number;
+  probability_opened_quickly: number | null;
   expected_interruption_risk: string;
   timing_explanation: string;
   support_warning?: string;
-  estimated_interruption_minutes: number;
-  estimated_browsing_minutes: number;
-  estimated_resumption_delay_minutes: number;
+  estimated_interruption_minutes: number | null;
+  estimated_browsing_minutes: number | null;
+  estimated_resumption_delay_minutes: number | null;
   deferred_delivery_minutes?: number | null;
   is_recommended?: boolean;
 }
@@ -220,34 +228,44 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
+async function withOnDeviceFallback<T>(local: () => T, remote: () => Promise<T>): Promise<T> {
+  if (!isNativeApp()) return remote();
+  if (!getApiBaseUrl()) return local();
+  try {
+    return await remote();
+  } catch {
+    return local();
+  }
+}
+
 // ── API functions ──────────────────────────────────────────────────────────
 
 export const api = {
   /** Phase 1 */
-  health: () => apiFetch<HealthResponse>('/api/health'),
+  health: () => withOnDeviceFallback(offlineHealth, () => apiFetch<HealthResponse>('/api/health')),
 
   /** Phase 2 — Events */
   createEvent: (payload: NotificationEventCreate) =>
-    apiFetch<NotificationEventResponse>('/api/events', {
+    withOnDeviceFallback(() => createOfflineEvent(payload), () => apiFetch<NotificationEventResponse>('/api/events', {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
+    })),
 
   listEvents: (limit = 50, offset = 0) =>
-    apiFetch<NotificationEventResponse[]>(`/api/events?limit=${limit}&offset=${offset}`),
+    withOnDeviceFallback(() => listOfflineEvents(limit, offset), () => apiFetch<NotificationEventResponse[]>(`/api/events?limit=${limit}&offset=${offset}`)),
 
   getEventHistory: (eventId: number) =>
-    apiFetch<EventHistoryResponse>(`/api/events/${eventId}/history`),
+    withOnDeviceFallback(() => getOfflineEventHistory(eventId), () => apiFetch<EventHistoryResponse>(`/api/events/${eventId}/history`)),
 
   /** Phase 4 — Model status */
-  modelStatus: () => apiFetch<ModelStatusResponse>('/api/models/status'),
+  modelStatus: () => withOnDeviceFallback(offlineModelStatus, () => apiFetch<ModelStatusResponse>('/api/models/status')),
 
   /** Phase 5 — Counterfactual comparison */
   compareCounterfactuals: (payload: CounterfactualCompareRequest) =>
-    apiFetch<CounterfactualCompareResponse>('/api/counterfactuals/compare', {
+    withOnDeviceFallback(() => compareOffline(payload), () => apiFetch<CounterfactualCompareResponse>('/api/counterfactuals/compare', {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
+    })),
 
   /** Mobile / Config helpers */
   getBaseUrl: getApiBaseUrl,

@@ -6,7 +6,7 @@ The Android project at `frontend/android` is a Capacitor 8 WebView wrapper with 
 
 The local log uses a bounded 200-record `SharedPreferences` store with at most 32 transitions per record. It retains a SHA-256-derived event ID, source package, posted/updated/removed timestamps, lifecycle transition trail, clearability, removal reason, and expected snooze repost time; it does not persist title/body or Android's raw notification key. Event IDs deduplicate update/removal callbacks and permit an in-memory lookup for a user-triggered snooze. Android backup is disabled so this metadata is not included in app backup. This is a first metadata milestone, not a Room-backed general event schema. Break delivery uses Android system snoozing after a manual action; there is no automatic policy routing, exact-time guarantee, reboot receiver, or offline model inference.
 
-The React app still queries the FastAPI health endpoint for its dashboard and counterfactual views. Native notification observation and snoozing are local, but predictions and the main dashboard need a configured backend URL. This APK is not yet an offline attention-management runtime.
+The Android app defaults to an on-device runtime when no backend URL is configured. Comparison guidance, locally entered event history, and profile status use TypeScript rules and WebView local storage. The optional FastAPI service remains usable when explicitly configured; if unreachable, Android falls back to local mode. No personal opening-probability model is deployed on the phone. Offline estimates are intentionally shown as unavailable rather than fabricated. This is an offline-capable prototype, not yet a complete personal learning system.
 
 ## Public notification API boundary
 
@@ -14,7 +14,7 @@ An ordinary Android app can declare a `NotificationListenerService` protected by
 
 From API 26, a connected listener may call `snoozeNotification(key, durationMs)`. Android removes the snoozed item and posts it again when the snooze period expires. This provides a legitimate post-post snooze mechanism, but it is not an exact wall-clock break scheduler: doze, process/device state, OEM policies, user permission, and source-app behavior need validation. `NotificationAssistantService` and notification ranking/adjustment APIs are a distinct assistant/system role surface; do not assume ordinary listener access grants it.
 
-For a first reliable implementation, prefer metadata-only local event logging, explicit permission status, and user-confirmed snooze. Do not globally edit other apps' notification channels. If automatic filtering is later added, offer an opt-in AttentionTwin-managed inbox and preserve clear recovery affordances. Important senders, calls, OTPs, and emergency/system alerts require explicit safe exceptions.
+For a first reliable implementation, prefer metadata-only local event logging, explicit permission status, and user-confirmed snooze. The offline comparison applies conservative rules only and is not connected to automatic notification routing. Do not globally edit other apps' notification channels. If automatic filtering is later added, offer an opt-in AttentionTwin-managed inbox and preserve clear recovery affordances. Important senders, calls, OTPs, and emergency/system alerts require explicit safe exceptions.
 
 ## Background and device limits
 

@@ -155,8 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
               <p className="modal-desc">
                 {isNative ? (
                   <>
-                    When running on an Android device, enter your laptop&apos;s Wi-Fi / hotspot IP address
-                    and port (e.g. <code>http://10.33.129.111:8000</code>).
+                    Android works in on-device offline mode by default. Connect an optional development backend by entering your laptop&apos;s Wi-Fi / hotspot address and port (for example, <code>http://192.168.1.20:8000</code>).
                   </>
                 ) : (
                   <>
@@ -169,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="current-url-indicator">
                 <span className="current-url-label">Active Base URL:</span>
                 <span className="current-url-val mono">
-                  {getApiBaseUrl() || (isNative ? '⚠️ Not configured' : 'http://localhost:5173/api (Vite proxy)')}
+                  {getApiBaseUrl() || (isNative ? 'On-device offline runtime' : 'http://localhost:5173/api (Vite proxy)')}
                 </span>
               </div>
 
@@ -206,7 +205,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="preset-chip"
                   onClick={() => setPresetUrl('')}
                 >
-                  Reset / Blank (Web Proxy)
+                  {isNative ? 'Use offline mode' : 'Reset / Blank (Web Proxy)'}
                 </button>
               </div>
 
@@ -218,17 +217,15 @@ export const Header: React.FC<HeaderProps> = ({
               )}
 
               <div className="connection-info-box">
-                <strong>Wi-Fi Setup for Physical Android Phones:</strong>
-                <ol>
-                  <li>Connect phone and laptop to the same Wi-Fi / hotspot.</li>
-                  <li>Find your laptop&apos;s IP address (run <code>ipconfig</code>).</li>
-                  <li>
-                    Start FastAPI backend on laptop with:
-                    <br />
-                    <code>python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000</code>
-                  </li>
-                  <li>Enter <code>http://&lt;LAPTOP-IP&gt;:8000</code> above and tap Save.</li>
-                </ol>
+                {isNative ? (
+                  <>
+                    <strong>Standalone phone mode:</strong> Leave the address blank to keep local history and rule-based guidance on this device. Laptop access is optional for development; if enabled, keep the phone and laptop on the same network and run FastAPI on port 8000.
+                  </>
+                ) : (
+                  <>
+                    <strong>Local development:</strong> Leave blank to use the Vite proxy, or specify an explicit backend URL.
+                  </>
+                )}
               </div>
             </div>
 

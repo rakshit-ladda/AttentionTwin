@@ -4,7 +4,7 @@ export type NavTab =
   | 'counterfactual' 
   | 'history';
 
-export type ConnectionState = 'checking' | 'connected' | 'offline' | 'not_configured';
+export type ConnectionState = 'checking' | 'connected' | 'local' | 'offline' | 'not_configured';
 
 export interface HealthStatus {
   status: ConnectionState;

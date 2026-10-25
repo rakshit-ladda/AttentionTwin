@@ -24,6 +24,11 @@ Updated: 2026-10-26
 
 ## Work completed in this execution
 
+- Follow-up milestone: Android no longer requires a laptop backend when the backend URL is blank. Added an on-device fallback for health, counterfactual comparison, event history, and profile status. Offline event rows omit user-entered message text; they use WebView local storage. If a configured backend is unreachable, these calls fall back to local mode.
+- Offline counterfactual output is explicitly rule-based, with no fabricated user opening probability or time estimates. It recommends only conservative guidance; DEFER remains an explicit user action and SUPPRESS is comparison-only.
+- Frontend TypeScript production build passed; Capacitor sync passed; Gradle `assembleDebug` passed in WSL. Output `frontend/android/app/build/outputs/apk/debug/AttentionTwin-offline-debug.apk` is signed with the existing Windows debug key. Physical-device install/run remains blocked/unverified: the user's screenshot shows Google Play Protect blocking the sideloaded APK because of sensitive notification access.
+- Remaining acceptance gap: there is still no on-device personal model, no automatic notification policy integration, no Room database, and no physical-device verification. The native listener is post-publication and cannot guarantee suppression of the first alert. This milestone makes the app usable offline for the dashboard/runtime, but does not complete the full mission.
+
 - Repository, Git state, source structure, ignore rules, existing API/model/data and Android configuration inspected.
 - Android API and dataset/reference-app research started using primary Android documentation and dataset/project sources.
 - Frontend production build completed successfully after native UI integration (`npm run build`); Vite emitted a non-fatal large-chunk advisory (main JS bundle 582.82 kB).

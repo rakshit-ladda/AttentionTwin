@@ -19,8 +19,10 @@ export const App: React.FC = () => {
     const isNative = isNativeApp();
     if (isNative && !baseUrl) {
       return {
-        status: 'not_configured',
-        errorMessage: 'Backend URL not configured on mobile.',
+        status: 'local',
+        service: 'AttentionTwin on-device runtime',
+        version: 'offline-rules-v1',
+        environment: 'on-device / offline',
         baseUrl: '',
       };
     }
@@ -36,8 +38,10 @@ export const App: React.FC = () => {
 
     if (isNative && !baseUrl) {
       setHealth({
-        status: 'not_configured',
-        errorMessage: 'Backend URL not configured. Tap Settings (⚙) to enter your laptop Wi-Fi address.',
+        status: 'local',
+        service: 'AttentionTwin on-device runtime',
+        version: 'offline-rules-v1',
+        environment: 'on-device / offline',
         baseUrl: '',
       });
       return;
@@ -51,7 +55,9 @@ export const App: React.FC = () => {
       const latencyMs = Math.round(endTime - startTime);
 
       setHealth({
-        status: data.status === 'healthy' ? 'connected' : 'offline',
+        status: data.environment === 'on-device / offline'
+          ? 'local'
+          : data.status === 'healthy' ? 'connected' : 'offline',
         service: data.service,
         version: data.version,
         environment: data.environment,

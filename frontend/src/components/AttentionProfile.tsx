@@ -12,6 +12,7 @@ export const AttentionProfile: React.FC = () => {
   const [events, setEvents] = useState<NotificationEventResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isOfflineRules = modelStatus?.model_version?.startsWith('offline-rules') ?? false;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,7 +59,7 @@ export const AttentionProfile: React.FC = () => {
             <span>Event Database</span>
           </div>
           <div className="big-stat">{loading ? '—' : events.length}</div>
-          <div className="stat-sublabel">recorded notification events</div>
+          <div className="stat-sublabel">{isOfflineRules ? 'saved simulator events on this phone' : 'recorded notification events'}</div>
           <div className="info-card-detail">
             {events.length > 0 && (
               <>
@@ -75,7 +76,7 @@ export const AttentionProfile: React.FC = () => {
               </>
             )}
             {events.length === 0 && !loading && (
-              <p className="muted-note">No events recorded yet. Use the Notification Simulator to add events.</p>
+              <p className="muted-note">No saved events yet. Use the Notification Simulator to add an example.</p>
             )}
           </div>
         </div>
@@ -84,7 +85,7 @@ export const AttentionProfile: React.FC = () => {
         <div className="info-card">
           <div className="info-card-header">
             <Brain size={18} className="info-card-icon indigo" />
-            <span>Action-Aware Model</span>
+            <span>{isOfflineRules ? 'On-device Decision Engine' : 'Action-Aware Model'}</span>
           </div>
           {loading ? (
             <div className="muted-note">Loading…</div>
@@ -125,6 +126,12 @@ export const AttentionProfile: React.FC = () => {
                 )}
               </div>
             </>
+          ) : isOfflineRules ? (
+            <>
+              <div className="big-stat accent-amber">Rules only</div>
+              <div className="stat-sublabel">No trained personal model on this phone</div>
+              <div className="info-card-detail"><p className="muted-note">Offline guidance uses conservative rules. It does not claim to predict your behavior.</p></div>
+            </>
           ) : (
             <>
               <div className="big-stat accent-amber">Not Loaded</div>
@@ -140,9 +147,9 @@ export const AttentionProfile: React.FC = () => {
             <span>Data Provenance</span>
           </div>
           <div className="big-stat" style={{ fontSize: '1rem', lineHeight: 1.4 }}>
-            Synthetic
+            {isOfflineRules ? 'On-device' : 'Synthetic'}
           </div>
-          <div className="stat-sublabel">development dataset</div>
+          <div className="stat-sublabel">{isOfflineRules ? 'local-only history' : 'development dataset'}</div>
           <div className="info-card-detail">
             {modelStatus?.data_provenance ? (
               <p className="muted-note" style={{ marginTop: 0 }}>{modelStatus.data_provenance}</p>
@@ -153,7 +160,9 @@ export const AttentionProfile: React.FC = () => {
               </p>
             )}
             <div className="disclaimer-box">
-              ⚠ Counterfactual predictions are not causal. They reflect patterns in synthetic training data only.
+              {isOfflineRules
+                ? 'Offline guidance is rule-based. Personal learning needs real observed outcomes, which are not collected by this screen yet.'
+                : 'Counterfactual predictions are not causal. They reflect patterns in synthetic training data only.'}
             </div>
           </div>
         </div>

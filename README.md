@@ -1,6 +1,6 @@
 # AttentionTwin — Personal Attention Digital Twin
 
-> **Verified implementation status (2026-10-26):** AttentionTwin has a React/Capacitor dashboard, a FastAPI/SQLite backend, and an action-conditioned opening classifier trained on synthetic data. The Android source now has an opt-in listener that stores minimized metadata locally and lets the user snooze an active notification until the next configured daily break time on Android 8+. This does not guarantee prevention of the first alert or exact release timing, and it does not make automatic decisions or provide local model inference; dashboard predictions still require the laptop backend. Duration figures and `+25m` in the counterfactual API remain rule-based illustrations, not trained personal estimates or causal outcomes. See [`docs/PROBLEM_STATEMENT_COMPLIANCE.md`](docs/PROBLEM_STATEMENT_COMPLIANCE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md) for verified scope and remaining work.
+> **Verified implementation status (2026-10-26):** Android now has a local offline path for the dashboard comparison, profile, and event history; an optional FastAPI laptop backend remains available for development. Offline comparison uses conservative rules, stores user-entered event metadata in WebView local storage without message text, and does not claim personal ML probabilities or durations. The Android notification listener stores bounded lifecycle metadata locally and lets the user manually snooze an active notification to a configured break on Android 8+. It cannot guarantee prevention of the first alert, automatic routing, or exact release timing. See [`docs/PROBLEM_STATEMENT_COMPLIANCE.md`](docs/PROBLEM_STATEMENT_COMPLIANCE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md) for remaining work.
 
 > **CASCADE 2026 — IIIT Nagpur Hackathon Project**  
 > **Phase 1: Project Foundation & Architecture Shell**  
@@ -157,7 +157,7 @@ npm run dev
 
 The Capacitor Android source (`com.attentiontwin.app`) now contains a metadata-only notification listener and manual system snooze action. The APK listed below predates those source changes; it has not yet been rebuilt because JDK 21 cannot initialize its selector loopback pipe in this environment.
 
-After a successful rebuild, the listener requires the user to enable Notification Access in Android Settings. The app stores a bounded local metadata history. A user can configure daily break times and manually snooze an active notification until the next one on Android 8+. Android controls the eventual repost timing; this is not automatic policy routing or guaranteed exact delivery. The dashboard prediction screens still require the laptop backend.
+After a successful rebuild, the listener requires the user to enable Notification Access in Android Settings. The app stores a bounded local metadata history. A user can configure daily break times and manually snooze an active notification until the next one on Android 8+. Android controls the eventual repost timing; this is not automatic policy routing or guaranteed exact delivery. On-device dashboard rules and history work without a laptop. A laptop backend is optional and can be configured in Settings.
 
 ### 1. Pre-built APK Artifact
 - **APK Path:** `frontend/android/app/build/outputs/apk/debug/app-debug.apk`
@@ -166,7 +166,7 @@ After a successful rebuild, the listener requires the user to enable Notificatio
 - **Size:** ~4.3 MB
 
 ### 2. Run Backend for Mobile Device Access
-For the Android app to connect to the backend over your local network:
+Optional: to connect Android to the development backend over your local network:
 ```powershell
 .venv\Scripts\python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload
 ```
