@@ -26,8 +26,10 @@ Updated: 2026-10-26
 
 - Repository, Git state, source structure, ignore rules, existing API/model/data and Android configuration inspected.
 - Android API and dataset/reference-app research started using primary Android documentation and dataset/project sources.
-- Python regression suite and frontend production build started; frontend build completed successfully with a Vite chunk-size advisory. Python suite was still running at last check and is not yet reported as passing.
-- No source code or application behavior has been changed in this pass. No commit or push has been made.
+- Frontend production build completed successfully (`npm run build`); Vite emitted a non-fatal large-chunk advisory (main JS bundle 568.83 kB).
+- Backend full suite was attempted but stalled at the first CORS `TestClient` test; no full-suite pass is claimed. A narrower run of `test_synthetic_data.py` passed all 5 tests. The combined synthetic + ML pipeline run stalled during the ML portion and was stopped; no ML suite pass is claimed.
+- Android Gradle build was attempted twice, including an escalated one-worker/no-daemon retry. Both failed with `java.io.IOException: Unable to establish loopback connection`. Existing APK remains the artifact from 2026-10-25 20:18:24; no new APK was produced. No physical device is attached/tested.
+- Documentation and README truth-in-status update were committed as `d49f432` (`docs: audit AttentionTwin capabilities and platform limits`). No push was made.
 
 ## Remaining work
 
@@ -35,4 +37,4 @@ This is a multi-phase engineering mission and remains incomplete. In particular:
 
 ## Exact next action
 
-Collect the running regression-suite result, then implement a first native notification-listener milestone only if the available Android toolchain can build it. Keep the initial milestone metadata-only and local, with explicit user-granted access and no claim that the original alert is prevented.
+Resolve the local Gradle loopback restriction and diagnose the stalled TestClient/ML runs. Then implement a first native notification-listener milestone only once the Android toolchain can build it. Keep the initial milestone metadata-only and local, with explicit user-granted access and no claim that the original alert is prevented.
