@@ -79,23 +79,23 @@ export const CounterfactualResultPanel: React.FC<Props> = ({ result }) => {
       {/* Chart */}
       <div className="cf-chart-wrap">
         <div className="chart-label">P(opened quickly) by action</div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={210}>
+          <BarChart data={chartData} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis
               dataKey="action"
               tickFormatter={(v: string) => v.toUpperCase()}
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               domain={[0, 1]}
               tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              tick={{ fill: '#94a3b8', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={45}
+              width={38}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={0.5} stroke="#334155" strokeDasharray="4 4" />

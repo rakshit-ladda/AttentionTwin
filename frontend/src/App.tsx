@@ -7,40 +7,63 @@ import { NotificationSimulator } from './components/NotificationSimulator';
 import { CounterfactualComparison } from './components/CounterfactualComparison';
 import { HistoryPanel } from './components/HistoryPanel';
 import { NavTab, HealthStatus } from './types';
+import { api, getApiBaseUrl, isNativeApp } from './api';
 import './App.css';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('counterfactual');
-  const [health, setHealth] = useState<HealthStatus>({
-    status: 'loading',
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [health, setHealth] = useState<HealthStatus>(() => {
+    const baseUrl = getApiBaseUrl();
+    const isNative = isNativeApp();
+    if (isNative && !baseUrl) {
+      return {
+        status: 'not_configured',
+        errorMessage: 'Backend URL not configured on mobile.',
+        baseUrl: '',
+      };
+    }
+    return {
+      status: 'checking',
+      baseUrl,
+    };
   });
 
   const checkHealth = useCallback(async () => {
-    setHealth((prev) => ({ ...prev, status: 'loading' }));
+    const baseUrl = getApiBaseUrl();
+    const isNative = isNativeApp();
+
+    if (isNative && !baseUrl) {
+      setHealth({
+        status: 'not_configured',
+        errorMessage: 'Backend URL not configured. Tap Settings (⚙) to enter your laptop Wi-Fi address.',
+        baseUrl: '',
+      });
+      return;
+    }
+
+    setHealth((prev) => ({ ...prev, status: 'checking', baseUrl }));
     const startTime = performance.now();
     try {
-      const response = await fetch('/api/health');
+      const data = await api.health();
       const endTime = performance.now();
       const latencyMs = Math.round(endTime - startTime);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
-      }
-
-      const data = await response.json();
       setHealth({
-        status: data.status === 'healthy' ? 'healthy' : 'unhealthy',
+        status: data.status === 'healthy' ? 'connected' : 'offline',
         service: data.service,
         version: data.version,
         environment: data.environment,
         timestamp: data.timestamp,
         latencyMs,
+        baseUrl,
       });
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown connection error';
       setHealth({
-        status: 'error',
+        status: 'offline',
         errorMessage: errorMsg,
+        baseUrl,
       });
     }
   }, []);
@@ -51,11 +74,21 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-container">
-      <Header health={health} onRefreshHealth={checkHealth} />
+      <Header
+        health={health}
+        onRefreshHealth={checkHealth}
+        isSettingsOpen={isSettingsOpen}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onCloseSettings={() => setIsSettingsOpen(false)}
+      />
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="app-main">
-        <StatusBanner health={health} />
+        <StatusBanner
+          health={health}
+          onRetry={checkHealth}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
         {activeTab === 'profile' && <AttentionProfile />}
         {activeTab === 'simulator' && <NotificationSimulator />}
         {activeTab === 'counterfactual' && <CounterfactualComparison />}

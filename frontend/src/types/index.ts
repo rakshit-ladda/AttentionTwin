@@ -4,12 +4,16 @@ export type NavTab =
   | 'counterfactual' 
   | 'history';
 
+export type ConnectionState = 'checking' | 'connected' | 'offline' | 'not_configured';
+
 export interface HealthStatus {
-  status: 'healthy' | 'unhealthy' | 'loading' | 'error';
+  status: ConnectionState;
   service?: string;
   version?: string;
   environment?: string;
   timestamp?: string;
   latencyMs?: number;
   errorMessage?: string;
+  baseUrl?: string;
 }
+

@@ -87,21 +87,39 @@
   height: 8px;
   border-radius: 50%;
   position: relative;
+  flex-shrink: 0;
 }
 
-.pulse-dot.healthy {
+.pulse-dot.connected, .pulse-dot.healthy {
   background: var(--accent-emerald);
   box-shadow: 0 0 10px var(--accent-emerald);
 }
 
-.pulse-dot.unhealthy, .pulse-dot.error {
+.pulse-dot.checking, .pulse-dot.loading {
+  background: var(--accent-amber);
+  box-shadow: 0 0 10px var(--accent-amber);
+}
+
+.pulse-dot.not-configured {
+  background: #818cf8;
+  box-shadow: 0 0 10px #818cf8;
+}
+
+.pulse-dot.offline, .pulse-dot.unhealthy, .pulse-dot.error {
   background: var(--accent-rose);
   box-shadow: 0 0 10px var(--accent-rose);
 }
 
-.pulse-dot.loading {
-  background: var(--accent-amber);
-  box-shadow: 0 0 10px var(--accent-amber);
+@keyframes pulseRing {
+  0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
+
+.highlight-pulse {
+  animation: pulseRing 2s infinite;
+  border-color: var(--accent-indigo) !important;
+  color: #a5b4fc !important;
 }
 
 .refresh-btn {
@@ -1338,3 +1356,466 @@
   background: rgba(10, 13, 20, 0.4);
   border-top: 1px solid var(--border-color);
 }
+
+/* ---------------- Banner Notices ---------------- */
+.banner-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.banner-notice-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+}
+
+.banner-notice-error {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fda4af;
+}
+
+.banner-notice-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+
+.banner-notice-icon {
+  flex-shrink: 0;
+}
+
+.banner-notice-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.btn-banner-action {
+  background: var(--bg-card);
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.btn-banner-action.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+/* ---------------- Connection Indicator in Modal ---------------- */
+.current-url-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: rgba(10, 13, 20, 0.5);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.current-url-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.current-url-val {
+  font-size: 0.8rem;
+  color: var(--accent-cyan);
+  word-break: break-all;
+}
+
+.connection-error-box {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  color: #fda4af;
+  font-size: 0.78rem;
+  display: flex;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Mobile-First Responsive Layout Overrides (Phones: 360px - 430px CSS width)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Prevent horizontal page blow-out */
+  html, body, #root, .app-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box;
+  }
+
+  /* Safe-area insets & header compaction */
+  .app-header {
+    padding: calc(0.6rem + env(safe-area-inset-top, 0px)) 0.75rem 0.6rem;
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .brand-section {
+    gap: 0.55rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .brand-text {
+    min-width: 0;
+  }
+
+  .brand-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .brand-subtitle {
+    font-size: 0.68rem;
+    gap: 0.35rem;
+  }
+
+  .event-badge {
+    display: none; /* Hide non-essential hackathon tag on small screens */
+  }
+
+  .header-meta {
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+
+  .health-badge {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.72rem;
+    gap: 0.35rem;
+  }
+
+  .health-status-text {
+    max-width: 95px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Navigation tab row */
+  .app-nav {
+    padding: 0.35rem 0.65rem 0;
+    gap: 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-tab {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.78rem;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  /* Main content container */
+  .app-main {
+    padding: 0.85rem 0.65rem;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* System Banner */
+  .system-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.9rem;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .banner-content {
+    gap: 0.65rem;
+  }
+
+  .banner-title {
+    font-size: 0.88rem;
+    line-height: 1.35;
+  }
+
+  .banner-desc {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .banner-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .stat-chip {
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .stat-label {
+    font-size: 0.62rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat-value {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .banner-notice {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .banner-notice-actions {
+    justify-content: flex-end;
+  }
+
+  /* Section headers */
+  .section-header-bar {
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .section-title {
+    font-size: 1.15rem;
+  }
+
+  .section-tagline {
+    font-size: 0.75rem;
+  }
+
+  .section-icon-large {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  /* Grid fallbacks to single column */
+  .blueprint-grid,
+  .profile-grid,
+  .preset-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem;
+    width: 100%;
+  }
+
+  .cf-scenario-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .cf-scenario-card {
+    padding: 0.85rem;
+  }
+
+  .cf-scenario-action-row {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .cf-result-panel {
+    padding: 0.85rem;
+    gap: 1rem;
+  }
+
+  .cf-chart-wrap {
+    padding: 0.6rem 0.4rem 0.2rem;
+    overflow: hidden;
+  }
+
+  /* Simulator Form */
+  .sim-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  .sim-form-card {
+    padding: 0.85rem;
+  }
+
+  .field-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sim-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sim-actions .btn-primary,
+  .sim-actions .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* History / Audit table */
+  .events-table-header {
+    padding: 0.75rem 0.85rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .event-row-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .event-row-left {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .event-text-preview {
+    width: 100%;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+  }
+
+  .event-row-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .event-history-details {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .subblock-code {
+    max-width: 100%;
+    overflow-x: auto;
+    font-size: 0.7rem;
+    padding: 0.5rem;
+  }
+
+  /* Modal responsive sizing */
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-content {
+    max-height: 94vh;
+    border-radius: 10px;
+  }
+
+  .modal-header {
+    padding: 1rem 1.15rem;
+  }
+
+  .modal-body {
+    padding: 1rem 1.15rem;
+    gap: 0.75rem;
+  }
+
+  .quick-presets {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .preset-chip {
+    justify-content: flex-start;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .connection-info-box {
+    padding: 0.7rem 0.85rem;
+    font-size: 0.72rem;
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1.15rem;
+  }
+
+  /* Footer */
+  .app-footer {
+    flex-direction: column;
+    gap: 0.4rem;
+    text-align: center;
+    padding: 1rem 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    font-size: 0.75rem;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+}
+
+/* Extra small devices (<= 380px CSS width, e.g. narrow Android screens) */
+@media (max-width: 380px) {
+  .banner-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-title {
+    font-size: 0.95rem;
+  }
+
+  .health-status-text {
+    max-width: 80px;
+  }
+
+  .cf-prob-val {
+    font-size: 1.3rem;
+  }
+}
+

@@ -130,28 +130,68 @@ export interface ModelStatusResponse {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+export function isNativeApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const isCapacitorNative = Boolean(
+    (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
+  );
+  const isCapacitorScheme = window.location.protocol === 'capacitor:';
+  const isLocalhostWithoutPort = window.location.hostname === 'localhost' && !window.location.port;
+  return isCapacitorNative || isCapacitorScheme || isLocalhostWithoutPort;
+}
+
+export function normalizeApiBaseUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  let url = rawUrl.trim();
+  if (!url) return '';
+
+  // If no scheme is provided, default to http://
+  if (!/^https?:\/\//i.test(url)) {
+    url = `http://${url}`;
+  }
+
+  // Remove trailing slashes
+  url = url.replace(/\/+$/, '');
+
+  // If the user accidentally appended /api or /api/, strip it
+  url = url.replace(/\/api$/i, '');
+
+  // Strip trailing slashes again
+  url = url.replace(/\/+$/, '');
+
+  return url;
+}
+
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('attentiontwin_api_base_url');
-    if (custom) return custom.trim().replace(/\/+$/, '');
+    if (custom) return normalizeApiBaseUrl(custom);
   }
   const envUrl = (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL;
-  if (envUrl) return envUrl.trim().replace(/\/+$/, '');
+  if (envUrl) return normalizeApiBaseUrl(envUrl);
   return '';
 }
 
 export function setApiBaseUrl(url: string): void {
   if (typeof window === 'undefined') return;
-  const clean = url.trim().replace(/\/+$/, '');
-  if (!clean) {
+  const normalized = normalizeApiBaseUrl(url);
+  if (!normalized) {
     localStorage.removeItem('attentiontwin_api_base_url');
   } else {
-    localStorage.setItem('attentiontwin_api_base_url', clean);
+    localStorage.setItem('attentiontwin_api_base_url', normalized);
   }
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const baseUrl = getApiBaseUrl();
+
+  // If running on native Android and no URL is configured yet, prevent useless failed fetch
+  if (isNativeApp() && !baseUrl) {
+    throw new Error(
+      'Backend URL is not configured. Please open Settings (⚙) in the top header and enter your laptop Wi-Fi address (e.g. http://10.33.129.111:8000).'
+    );
+  }
+
   const fullUrl = baseUrl ? `${baseUrl}${path}` : path;
 
   try {
@@ -167,7 +207,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   } catch (err: unknown) {
     if (err instanceof TypeError && (err.message.includes('fetch') || err.message.includes('NetworkError') || err.message.includes('Failed'))) {
       const target = baseUrl || 'local Vite proxy (/api)';
-      throw new Error(`Cannot connect to backend (${target}). Ensure FastAPI is running on host 0.0.0.0 and your device is on the same network.`);
+      throw new Error(`Cannot reach backend at ${target}. Ensure FastAPI is running on host 0.0.0.0, your device is on the same Wi-Fi, and port 8000 is open.`);
     }
     throw err;
   }
@@ -205,4 +245,6 @@ export const api = {
   /** Mobile / Config helpers */
   getBaseUrl: getApiBaseUrl,
   setBaseUrl: setApiBaseUrl,
+  isNative: isNativeApp,
+  normalizeUrl: normalizeApiBaseUrl,
 };
