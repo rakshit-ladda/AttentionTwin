@@ -2,7 +2,7 @@
 
 ## Current implementation
 
-The Android listener stores at most 200 metadata records in app-private `SharedPreferences`, with at most 32 transitions per record: generated hash ID, source package, timestamps, clearability, lifecycle state, and removal reason. It omits title/body, previews, contact identity, and raw system key; the app has a clear-history action. Android app backup is disabled. SharedPreferences is app-private storage but is not an encrypted database. In on-device offline mode, manually saved simulator events are stored in WebView local storage with message text replaced by a fixed placeholder; the remote backend path can persist submitted text when the user explicitly configures and uses it. Offline history is device-local and is not encrypted or synchronized.
+The Android listener stores at most 200 metadata records in app-private `SharedPreferences`, with at most 32 transitions per record: generated hash ID, source package/label, timestamps, clearability, lifecycle state, and removal reason. It omits title/body, previews, contact identity, and raw system key; the app has a clear-history action. Break schedule, focus windows, auto-defer opt-in, and selected package names are also stored locally. Android app backup is disabled. SharedPreferences is app-private storage but is not an encrypted database. In offline mode, manually saved simulator events are stored in WebView local storage with message text replaced by a fixed placeholder; synthetic demo rows are explicitly labeled and removable. The remote backend path can persist submitted text when the user explicitly configures and uses it. Offline history is device-local and not encrypted or synchronized.
 
 ## Required defaults for native collection
 

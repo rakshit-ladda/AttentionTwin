@@ -1,6 +1,6 @@
 # AttentionTwin — Personal Attention Digital Twin
 
-> **Verified implementation status (2026-10-26):** Android now has a local offline path for the dashboard comparison, profile, and event history; an optional FastAPI laptop backend remains available for development. Offline comparison uses conservative rules, stores user-entered event metadata in WebView local storage without message text, and does not claim personal ML probabilities or durations. The Android notification listener stores bounded lifecycle metadata locally and lets the user manually snooze an active notification to a configured break on Android 8+. It cannot guarantee prevention of the first alert, automatic routing, or exact release timing. See [`docs/PROBLEM_STATEMENT_COMPLIANCE.md`](docs/PROBLEM_STATEMENT_COMPLIANCE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md) for remaining work.
+> **Verified implementation status (2026-10-26):** Android has an offline path for comparison, profile, and history, with an optional FastAPI laptop backend. It can log bounded notification metadata and observed tap/dismiss/snooze reasons locally. Break snooze is user-triggered by default. An opt-in rule can automatically snooze user-selected clearable apps during configured focus windows, skipping several critical notification categories. It acts after Android posts the notification, so the first alert can appear; background callbacks, OEM behavior, exact release timing, and the Play Protect installation flow still need physical-device verification. Offline suggestions are rules, not personal ML. See [`docs/PROBLEM_STATEMENT_COMPLIANCE.md`](docs/PROBLEM_STATEMENT_COMPLIANCE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md) for remaining work.
 
 > **CASCADE 2026 — IIIT Nagpur Hackathon Project**  
 > **Phase 1: Project Foundation & Architecture Shell**  
@@ -157,7 +157,7 @@ npm run dev
 
 The Capacitor Android source (`com.attentiontwin.app`) now contains a metadata-only notification listener and manual system snooze action. The APK listed below predates those source changes; it has not yet been rebuilt because JDK 21 cannot initialize its selector loopback pipe in this environment.
 
-After a successful rebuild, the listener requires the user to enable Notification Access in Android Settings. The app stores a bounded local metadata history. A user can configure daily break times and manually snooze an active notification until the next one on Android 8+. Android controls the eventual repost timing; this is not automatic policy routing or guaranteed exact delivery. On-device dashboard rules and history work without a laptop. A laptop backend is optional and can be configured in Settings.
+After a successful rebuild, enable Notification Access in Android Settings. The app stores bounded local metadata. It can manually snooze an active notification to the next configured break; optionally, the user can select apps and focus windows for automatic snoozing. This acts only after Android posts the notification and Android controls repost timing. On-device dashboard rules and history work without a laptop. A laptop backend is optional.
 
 ### 1. Pre-built APK Artifact
 - **APK Path:** `frontend/android/app/build/outputs/apk/debug/app-debug.apk`

@@ -1,6 +1,6 @@
 # Physical-device checklist
 
-Status: all cases below remain **not run** in this audit. There is no recorded Redmi Note 13 Pro / HyperOS test evidence. Automated API tests cannot establish Android notification callback or OEM behavior.
+Status: all cases below remain **not run** on a physical device. Automated builds cannot establish Android notification callback or OEM behavior.
 
 For each run, record device model, Android/HyperOS build, app version/commit, permission state, battery settings, exact steps, timestamp, evidence, expected/actual behavior, and pass/fail. Use test notifications without private content.
 
@@ -11,6 +11,9 @@ For each run, record device model, Android/HyperOS build, app version/commit, pe
 | Marketing notification | User-selected policy and recovery behavior are honored | Not run |
 | Notification during break | Configured break policy is used | Not run |
 | Defer to break | Snooze/release occurs once and remains recoverable | Not run |
+| Opt-in auto-defer | Only explicitly selected packages are snoozed inside configured focus windows; first alert may flash | Not run |
+| Auto-defer safety exceptions | Calls, alarms, reminders, error/navigation, system UI, and non-clearable items are skipped | Not run |
+| Demo data | 24 synthetic rows are labeled as demo and can be removed without deleting real notification history | Not run |
 | Suppressed/dismissed item | History/recovery is available where supported | Not run |
 | User overrides | Override persists and affects subsequent policy | Not run |
 | Access revoked | UI reports missing access and app fails safely | Not run |

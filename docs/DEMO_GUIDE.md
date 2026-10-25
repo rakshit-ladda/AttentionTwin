@@ -1,6 +1,6 @@
 # AttentionTwin demo guide (current verified scope)
 
-This guide demonstrates the dashboard, synthetic comparison, and current limited native listener. It does not demonstrate pre-display interception, configured-break scheduling, offline phone inference, or personalization from real observations.
+This guide demonstrates the offline dashboard, labeled synthetic demo data, local notification history, and opt-in background snooze. It does not demonstrate pre-display interception, personal ML learning, or verified behavior on every Android/OEM version.
 
 1. Start the backend from the repository root: `.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000` (PowerShell).
 2. In another terminal, run `npm run dev` from `frontend`.
@@ -11,4 +11,4 @@ This guide demonstrates the dashboard, synthetic comparison, and current limited
 
 For an Android build that has been successfully packaged and installed, grant notification access in the on-device panel and send a harmless test notification from another app. The panel should log only the source package and lifecycle metadata. Configure a near-future daily break time, then tap **Defer to break** on an active event to request Android system snoozing. This still requires physical-device verification before claiming OS behavior; snooze is not proof that the first alert was blocked or that repost timing is exact.
 
-The existing debug APK can be installed for a UI-only demonstration, but the app will need a reachable FastAPI backend configured in Settings. The APK was not rebuilt in this audit. No device behavior should be demonstrated as verified unless tested on that device.
+Use the latest `AttentionTwin-offline-debug.apk` from the Gradle output directory. No laptop backend is required for offline mode. The current debug APK requests notification access and may be blocked by Play Protect when sideloaded. Do not describe phone behavior as verified until the exact phone tests below pass.

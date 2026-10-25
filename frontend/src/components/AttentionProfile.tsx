@@ -1,11 +1,11 @@
 /**
  * AttentionProfile — Phase 6
- * Live system information: model status, event counts, and feature info.
- * No fabricated metrics. All values come directly from /api/models/status and /api/events.
+ * On-device event and runtime summary, with optional clearly marked demo data.
  */
 import React, { useEffect, useState, useCallback } from 'react';
-import { UserCheck, RefreshCw, Brain, Database, Cpu, AlertTriangle } from 'lucide-react';
+import { UserCheck, RefreshCw, Brain, Database, Cpu, AlertTriangle, Sparkles, Trash2 } from 'lucide-react';
 import { api, ModelStatusResponse, NotificationEventResponse } from '../api';
+import { clearOfflineDemoData, loadOfflineDemoData } from '../native/offlineRuntime';
 
 export const AttentionProfile: React.FC = () => {
   const [modelStatus, setModelStatus] = useState<ModelStatusResponse | null>(null);
@@ -13,6 +13,12 @@ export const AttentionProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isOfflineRules = modelStatus?.model_version?.startsWith('offline-rules') ?? false;
+  const demoEvents = events.filter((event) => event.context_data?.is_synthetic_demo === true);
+  const demoOpenedCount = demoEvents.filter((event) => event.context_data?.outcome === 'opened_within_5min').length;
+  const demoDeferredCount = demoEvents.filter((event) => event.context_data?.outcome === 'deferred_then_opened').length;
+  const demoAverageBrowsing = demoEvents.length
+    ? demoEvents.reduce((sum, event) => sum + Number(event.context_data?.simulated_browsing_minutes ?? 0), 0) / demoEvents.length
+    : 0;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,9 +46,21 @@ export const AttentionProfile: React.FC = () => {
             <p className="section-tagline">Live model status and event database summary</p>
           </div>
         </div>
-        <button className="icon-btn" onClick={load} disabled={loading} title="Refresh">
-          <RefreshCw size={16} className={loading ? 'spin' : ''} />
-        </button>
+        <div className="section-actions">
+          {api.isNative() && !api.getBaseUrl() && (
+            <button className="btn-secondary" onClick={() => {
+              if (demoEvents.length) clearOfflineDemoData();
+              else loadOfflineDemoData();
+              void load();
+            }} disabled={loading}>
+              {demoEvents.length ? <Trash2 size={14} /> : <Sparkles size={14} />}
+              {demoEvents.length ? 'Remove demo data' : 'Load demo data'}
+            </button>
+          )}
+          <button className="icon-btn" onClick={load} disabled={loading} title="Refresh">
+            <RefreshCw size={16} className={loading ? 'spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -59,7 +77,7 @@ export const AttentionProfile: React.FC = () => {
             <span>Event Database</span>
           </div>
           <div className="big-stat">{loading ? '—' : events.length}</div>
-          <div className="stat-sublabel">{isOfflineRules ? 'saved simulator events on this phone' : 'recorded notification events'}</div>
+          <div className="stat-sublabel">{isOfflineRules ? 'local notifications and saved examples' : 'recorded notification events'}</div>
           <div className="info-card-detail">
             {events.length > 0 && (
               <>
@@ -80,6 +98,20 @@ export const AttentionProfile: React.FC = () => {
             )}
           </div>
         </div>
+
+        {demoEvents.length > 0 && (
+          <div className="info-card demo-insights-card">
+            <div className="info-card-header">
+              <Sparkles size={18} className="info-card-icon amber" />
+              <span>Synthetic demo snapshot</span>
+            </div>
+            <div className="stat-sublabel" style={{ marginBottom: '0.8rem' }}>Illustrative data only — not measured from this phone or user.</div>
+            <div className="detail-row"><span className="detail-key">Demo events</span><span className="detail-val mono">{demoEvents.length}</span></div>
+            <div className="detail-row"><span className="detail-key">Opened within 5 min (demo)</span><span className="detail-val mono">{Math.round((demoOpenedCount / demoEvents.length) * 100)}%</span></div>
+            <div className="detail-row"><span className="detail-key">Deferred then opened</span><span className="detail-val mono">{demoDeferredCount}</span></div>
+            <div className="detail-row"><span className="detail-key">Mean simulated browsing</span><span className="detail-val mono">{demoAverageBrowsing.toFixed(1)} min</span></div>
+          </div>
+        )}
 
         {/* Model card */}
         <div className="info-card">

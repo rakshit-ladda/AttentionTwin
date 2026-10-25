@@ -64,11 +64,12 @@ function nativeEventAsHistoryItem(item: LocalNotificationEvent): NotificationEve
   return {
     id: nativeEventNumberId(item.id),
     text: '[Notification text not stored on this device]',
-    source_app: item.packageName,
+    source_app: item.appLabel || item.packageName,
     category: 'notification',
     timestamp: new Date(item.postedAt).toISOString(),
     context_data: {
       local_notification_id: item.id,
+      package_name: item.packageName,
       lifecycle_state: item.state,
       updated_at: item.updatedAt,
       removed_at: item.removedAt,
@@ -106,7 +107,9 @@ export async function getOfflineEventHistory(eventId: number): Promise<EventHist
     id: deferredTransition.at,
     event_id: event.id,
     action: 'defer',
-    reason: 'User snoozed the notification until a configured break.',
+    reason: deferredTransition.deferOrigin === 'automatic'
+      ? 'Automatically snoozed during the focus window configured by the user.'
+      : 'User snoozed the notification until a configured break.',
     timestamp: new Date(deferredTransition.at).toISOString(),
   }] : [];
   const latestRemoval = nativeItem?.transitions?.slice().reverse().find((transition) => transition.state === 'removed');
@@ -193,4 +196,56 @@ export function compareOffline(request: CounterfactualCompareRequest): Counterfa
     data_provenance: 'Computed on this phone. No notification body is sent to a server by this offline path.',
     limitations_disclaimer: 'This is a conservative rule, not a learned personal prediction or causal estimate. The native listener observes notifications after publication. DEFER requires explicit user action; SUPPRESS is not executed.',
   };
+}
+
+const DEMO_CASES = [
+  { app: 'WhatsApp', category: 'direct_message', outcome: 'opened_within_5min', browsing: 9, focus: true },
+  { app: 'Instagram', category: 'social_like', outcome: 'dismissed', browsing: 0, focus: true },
+  { app: 'Gmail', category: 'email', outcome: 'opened_within_5min', browsing: 6, focus: false },
+  { app: 'Slack', category: 'mention', outcome: 'deferred_then_opened', browsing: 4, focus: true },
+  { app: 'Calendar', category: 'calendar_reminder', outcome: 'opened_within_5min', browsing: 2, focus: true },
+  { app: 'YouTube', category: 'recommendation', outcome: 'ignored', browsing: 0, focus: true },
+  { app: 'Teams', category: 'direct_message', outcome: 'deferred_then_opened', browsing: 5, focus: true },
+  { app: 'Phone', category: 'call', outcome: 'opened_within_5min', browsing: 3, focus: false },
+  { app: 'News', category: 'news', outcome: 'ignored', browsing: 0, focus: true },
+  { app: 'WhatsApp', category: 'direct_message', outcome: 'opened_within_5min', browsing: 11, focus: false },
+  { app: 'Instagram', category: 'social_like', outcome: 'ignored', browsing: 0, focus: true },
+  { app: 'Slack', category: 'build_status', outcome: 'opened_within_5min', browsing: 4, focus: true },
+  { app: 'Gmail', category: 'email', outcome: 'dismissed', browsing: 0, focus: true },
+  { app: 'Calendar', category: 'calendar_reminder', outcome: 'opened_within_5min', browsing: 2, focus: false },
+  { app: 'YouTube', category: 'recommendation', outcome: 'opened_within_5min', browsing: 18, focus: false },
+  { app: 'Teams', category: 'mention', outcome: 'deferred_then_opened', browsing: 5, focus: true },
+  { app: 'News', category: 'news', outcome: 'dismissed', browsing: 0, focus: false },
+  { app: 'Phone', category: 'missed_call', outcome: 'opened_within_5min', browsing: 3, focus: false },
+  { app: 'WhatsApp', category: 'direct_message', outcome: 'deferred_then_opened', browsing: 7, focus: true },
+  { app: 'Instagram', category: 'social_like', outcome: 'dismissed', browsing: 0, focus: false },
+  { app: 'Slack', category: 'mention', outcome: 'opened_within_5min', browsing: 5, focus: false },
+  { app: 'Gmail', category: 'email', outcome: 'ignored', browsing: 0, focus: true },
+  { app: 'YouTube', category: 'recommendation', outcome: 'ignored', browsing: 0, focus: true },
+  { app: 'Calendar', category: 'calendar_reminder', outcome: 'opened_within_5min', browsing: 2, focus: false },
+] as const;
+
+export function loadOfflineDemoData(): number {
+  const demoEvents: NotificationEventResponse[] = DEMO_CASES.map((item, index) => {
+    const timestamp = new Date(Date.now() - (index + 1) * 11 * 60 * 60 * 1000);
+    return {
+      id: 1_800_000_000_000 + index,
+      text: '[Synthetic demo notification; not a real message]',
+      source_app: `DEMO · ${item.app}`,
+      category: item.category,
+      timestamp: timestamp.toISOString(),
+      context_data: {
+        is_synthetic_demo: true,
+        outcome: item.outcome,
+        focus_session: item.focus,
+        simulated_browsing_minutes: item.browsing,
+      },
+    };
+  });
+  writeEvents([...readEvents().filter((event) => event.context_data?.is_synthetic_demo !== true), ...demoEvents]);
+  return demoEvents.length;
+}
+
+export function clearOfflineDemoData(): void {
+  writeEvents(readEvents().filter((event) => event.context_data?.is_synthetic_demo !== true));
 }

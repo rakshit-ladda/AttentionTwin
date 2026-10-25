@@ -4,11 +4,15 @@ import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.app.Notification;
+import android.text.TextUtils;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.Calendar;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,6 +29,8 @@ public class AttentionNotificationListener extends NotificationListenerService {
     private static final int MAX_TRANSITIONS_PER_EVENT = 32;
     private final Map<String, String> activeSystemKeys = new ConcurrentHashMap<>();
     private final Map<String, Long> deferredUntilById = new ConcurrentHashMap<>();
+    private final Map<String, String> deferredOriginById = new ConcurrentHashMap<>();
+    private final Set<String> autoDeferAttempted = ConcurrentHashMap.newKeySet();
 
     @Override
     public void onListenerConnected() {
@@ -62,6 +68,7 @@ public class AttentionNotificationListener extends NotificationListenerService {
         if (sbn == null) return;
         activeSystemKeys.put(stableId(sbn.getKey()), sbn.getKey());
         upsert(sbn, "active", null);
+        maybeAutoDefer(sbn);
     }
 
     @Override
@@ -78,23 +85,14 @@ public class AttentionNotificationListener extends NotificationListenerService {
         String state = Build.VERSION.SDK_INT >= 26 && reason == NotificationListenerService.REASON_SNOOZED
             ? "deferred" : "removed";
         upsert(sbn, state, reason);
-    }
-
-    boolean snooze(String id, long durationMs) {
-        if (Build.VERSION.SDK_INT < 26) return false;
-        String key = activeSystemKeys.get(id);
-        if (key == null) return false;
-        try {
-            deferredUntilById.put(id, System.currentTimeMillis() + durationMs);
-            snoozeNotification(key, durationMs);
-            return true;
-        } catch (RuntimeException ignored) {
-            deferredUntilById.remove(id);
-            return false;
-        }
+        if (!"deferred".equals(state)) autoDeferAttempted.remove(stableId(sbn.getKey()));
     }
 
     boolean snoozeUntilNextBreak(String id) {
+        return snoozeUntilNextBreak(id, "user");
+    }
+
+    private boolean snoozeUntilNextBreak(String id, String origin) {
         if (Build.VERSION.SDK_INT < 26) return false;
         String key = activeSystemKeys.get(id);
         if (key == null) return false;
@@ -121,7 +119,90 @@ public class AttentionNotificationListener extends NotificationListenerService {
         }
         long duration = nextBreak - now;
         if (nextBreak == Long.MAX_VALUE || duration <= 0 || duration > 24L * 60L * 60L * 1000L) return false;
-        return snooze(id, duration);
+        return snooze(id, duration, origin);
+    }
+
+    private boolean snooze(String id, long durationMs, String origin) {
+        if (Build.VERSION.SDK_INT < 26) return false;
+        String key = activeSystemKeys.get(id);
+        if (key == null) return false;
+        try {
+            deferredUntilById.put(id, System.currentTimeMillis() + durationMs);
+            deferredOriginById.put(id, origin);
+            snoozeNotification(key, durationMs);
+            return true;
+        } catch (RuntimeException ignored) {
+            deferredUntilById.remove(id);
+            deferredOriginById.remove(id);
+            return false;
+        }
+    }
+
+    private void maybeAutoDefer(StatusBarNotification sbn) {
+        String id = stableId(sbn.getKey());
+        boolean inFocusWindow = isInConfiguredFocusWindow();
+        if (!inFocusWindow) autoDeferAttempted.remove(id);
+        if (Build.VERSION.SDK_INT < 26 || !sbn.isClearable() || !inFocusWindow) return;
+        Notification notification = sbn.getNotification();
+        if (notification == null || isProtectedCategory(notification.category)) return;
+
+        String packageName = sbn.getPackageName();
+        if (TextUtils.isEmpty(packageName) || packageName.equals(getPackageName())
+            || "android".equals(packageName) || "com.android.systemui".equals(packageName)) return;
+
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        if (!prefs.getBoolean("auto_defer_enabled", false)) return;
+        Set<String> selectedPackages = csvSet(prefs.getString("auto_defer_packages", ""));
+        if (!selectedPackages.contains(packageName)) return;
+
+        if (!autoDeferAttempted.add(id)) return;
+        if (!snoozeUntilNextBreak(id, "automatic")) autoDeferAttempted.remove(id);
+    }
+
+    private boolean isInConfiguredFocusWindow() {
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String[] windows = prefs.getString("focus_windows", "").split(",");
+        Calendar now = Calendar.getInstance();
+        int current = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+        for (String window : windows) {
+            String[] parts = window.trim().split("-");
+            if (parts.length != 2) continue;
+            int start = parseTime(parts[0]);
+            int end = parseTime(parts[1]);
+            if (start < 0 || end < 0 || start == end) continue;
+            if (start < end ? current >= start && current < end : current >= start || current < end) return true;
+        }
+        return false;
+    }
+
+    private static int parseTime(String value) {
+        String[] parts = value.trim().split(":");
+        if (parts.length != 2) return -1;
+        try {
+            int hour = Integer.parseInt(parts[0]);
+            int minute = Integer.parseInt(parts[1]);
+            if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return -1;
+            return hour * 60 + minute;
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
+    }
+
+    private static Set<String> csvSet(String csv) {
+        Set<String> values = new HashSet<>();
+        for (String value : csv.split(",")) {
+            String trimmed = value.trim();
+            if (!trimmed.isEmpty()) values.add(trimmed);
+        }
+        return values;
+    }
+
+    private static boolean isProtectedCategory(String category) {
+        return Notification.CATEGORY_CALL.equals(category)
+            || Notification.CATEGORY_ALARM.equals(category)
+            || Notification.CATEGORY_REMINDER.equals(category)
+            || Notification.CATEGORY_ERROR.equals(category)
+            || Notification.CATEGORY_NAVIGATION.equals(category);
     }
 
     private void upsert(StatusBarNotification sbn, String state, Integer reason) {
@@ -137,20 +218,25 @@ public class AttentionNotificationListener extends NotificationListenerService {
                     JSONObject item = current.optJSONObject(i);
                     if (item == null) continue;
                     if (id.equals(item.optString("id"))) {
+                        if (!item.has("appLabel")) item.put("appLabel", applicationLabel(sbn.getPackageName()));
                         item.put("state", state);
                         item.put("updatedAt", now);
                         if ("active".equals(state)) {
                             item.remove("removedAt");
                             item.remove("removalReason");
                             item.remove("deferredUntil");
+                            item.remove("deferOrigin");
                             deferredUntilById.remove(id);
+                            deferredOriginById.remove(id);
                         } else {
                             item.put("removedAt", now);
                             if (reason != null) item.put("removalReason", reason);
                             Long releaseAt = deferredUntilById.get(id);
                             if ("deferred".equals(state) && releaseAt != null) item.put("deferredUntil", releaseAt);
+                            String origin = deferredOriginById.get(id);
+                            if ("deferred".equals(state) && origin != null) item.put("deferOrigin", origin);
                         }
-                        appendTransition(item, state, now, reason);
+                        appendTransition(item, state, now, reason, deferredOriginById.get(id));
                         updated.put(item);
                         found = true;
                     } else {
@@ -161,6 +247,7 @@ public class AttentionNotificationListener extends NotificationListenerService {
                     JSONObject item = new JSONObject();
                     item.put("id", id);
                     item.put("packageName", sbn.getPackageName());
+                    item.put("appLabel", applicationLabel(sbn.getPackageName()));
                     item.put("postedAt", sbn.getPostTime());
                     item.put("updatedAt", now);
                     item.put("state", state);
@@ -168,7 +255,9 @@ public class AttentionNotificationListener extends NotificationListenerService {
                     if (reason != null) item.put("removalReason", reason);
                     Long releaseAt = deferredUntilById.get(id);
                     if ("deferred".equals(state) && releaseAt != null) item.put("deferredUntil", releaseAt);
-                    appendTransition(item, state, now, reason);
+                    String origin = deferredOriginById.get(id);
+                    if ("deferred".equals(state) && origin != null) item.put("deferOrigin", origin);
+                    appendTransition(item, state, now, reason, origin);
                     updated.put(item);
                 }
                 int start = Math.max(0, updated.length() - MAX_EVENTS);
@@ -181,18 +270,29 @@ public class AttentionNotificationListener extends NotificationListenerService {
         }
     }
 
-    private static void appendTransition(JSONObject item, String state, long at, Integer reason) throws JSONException {
+    private static void appendTransition(JSONObject item, String state, long at, Integer reason, String deferOrigin) throws JSONException {
         JSONArray transitions = item.optJSONArray("transitions");
         if (transitions == null) transitions = new JSONArray();
         JSONObject transition = new JSONObject();
         transition.put("state", state);
         transition.put("at", at);
         if (reason != null) transition.put("reason", reason);
+        if ("deferred".equals(state) && deferOrigin != null) transition.put("deferOrigin", deferOrigin);
         transitions.put(transition);
         JSONArray bounded = new JSONArray();
         int start = Math.max(0, transitions.length() - MAX_TRANSITIONS_PER_EVENT);
         for (int i = start; i < transitions.length(); i++) bounded.put(transitions.get(i));
         item.put("transitions", bounded);
+    }
+
+    private String applicationLabel(String packageName) {
+        try {
+            android.content.pm.ApplicationInfo info = getPackageManager().getApplicationInfo(packageName, 0);
+            CharSequence label = getPackageManager().getApplicationLabel(info);
+            return label == null ? packageName : label.toString();
+        } catch (Exception ignored) {
+            return packageName;
+        }
     }
 
     private static String stableId(String key) {
