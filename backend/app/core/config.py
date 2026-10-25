@@ -12,7 +12,12 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
     ]
+    CORS_ALLOW_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    CORS_ALLOW_HEADERS: List[str] = ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"]
     DATABASE_URL: str = "sqlite:///./attention_twin.db"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
