@@ -1,0 +1,137 @@
+{
+  "model_version": "baseline_v1.0.0",
+  "model_name": "RandomForestClassifier",
+  "target_variable": "opened_within_5min",
+  "target_definition": "1 if notification was opened within 5 minutes, 0 if delayed or ignored",
+  "data_provenance": "SYNTHETIC_DEVELOPMENT_DATA (CASCADE 2026 Simulation)",
+  "disclaimer": "This model was trained exclusively on synthetic development data. Performance metrics reflect simulation heuristics and do not establish real-world human attention predictability.",
+  "training_dataset_source": "data/synthetic/feature_dataset.csv",
+  "num_training_rows": 6400,
+  "num_test_rows": 1600,
+  "feature_names": [
+    "source_app",
+    "app_category",
+    "notification_category",
+    "focus_mode",
+    "text_length",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "is_focus_session",
+    "recent_notification_count_15m",
+    "minutes_since_last_notification",
+    "notification_load_1h",
+    "app_historical_open_rate",
+    "app_historical_ignore_rate",
+    "user_historical_open_rate",
+    "recent_allow_rate_1h",
+    "recent_suppress_rate_1h"
+  ],
+  "categorical_features": [
+    "source_app",
+    "app_category",
+    "notification_category",
+    "focus_mode"
+  ],
+  "numeric_features": [
+    "text_length",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "is_focus_session",
+    "recent_notification_count_15m",
+    "minutes_since_last_notification",
+    "notification_load_1h",
+    "app_historical_open_rate",
+    "app_historical_ignore_rate",
+    "user_historical_open_rate",
+    "recent_allow_rate_1h",
+    "recent_suppress_rate_1h"
+  ],
+  "split_metadata": {
+    "strategy": "chronological_split",
+    "train_ratio": 0.8,
+    "train_rows": 6400,
+    "test_rows": 1600,
+    "train_time_range": [
+      "2026-10-01T08:00:58.210663+00:00",
+      "2026-10-12T20:14:27.743197+00:00"
+    ],
+    "test_time_range": [
+      "2026-10-12T01:31:07.066230+00:00",
+      "2026-10-15T07:59:26.309456+00:00"
+    ],
+    "description": "Splits each user's event timeline into 80% past history for training and 20% future events for evaluation."
+  },
+  "trained_at": "2026-10-25T11:32:26.029889+00:00",
+  "metrics": {
+    "accuracy": 0.71625,
+    "precision": 0.7322175732217573,
+    "recall": 0.30973451327433627,
+    "f1": 0.43532338308457713,
+    "roc_auc": 0.7139190286862469,
+    "confusion_matrix": [
+      [
+        971,
+        64
+      ],
+      [
+        390,
+        175
+      ]
+    ]
+  },
+  "comparison": {
+    "dummy_baseline": {
+      "accuracy": 0.646875,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "roc_auc": 0.5,
+      "confusion_matrix": [
+        [
+          1035,
+          0
+        ],
+        [
+          565,
+          0
+        ]
+      ]
+    },
+    "logistic_regression": {
+      "accuracy": 0.72125,
+      "precision": 0.7148014440433214,
+      "recall": 0.3504424778761062,
+      "f1": 0.47030878859857483,
+      "roc_auc": 0.7191620708819632,
+      "confusion_matrix": [
+        [
+          956,
+          79
+        ],
+        [
+          367,
+          198
+        ]
+      ]
+    },
+    "random_forest": {
+      "accuracy": 0.71625,
+      "precision": 0.7322175732217573,
+      "recall": 0.30973451327433627,
+      "f1": 0.43532338308457713,
+      "roc_auc": 0.7139190286862469,
+      "confusion_matrix": [
+        [
+          971,
+          64
+        ],
+        [
+          390,
+          175
+        ]
+      ]
+    }
+  }
+}

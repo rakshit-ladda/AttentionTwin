@@ -1,0 +1,48 @@
+{
+  "disclaimer": "SYNTHETIC DEVELOPMENT DATA \u2014 NOT REAL USER DATA",
+  "generator_version": "1.0.0",
+  "seed": 42,
+  "generation_timestamp": "2026-10-25T11:29:36.373789+00:00",
+  "num_users": 10,
+  "num_events": 8000,
+  "date_range": {
+    "start": "2026-10-01T08:00:58.210663+00:00",
+    "end": "2026-10-15T07:59:26.309456+00:00"
+  },
+  "simulation_assumptions": [
+    "App category and notification category influence likelihood of quick response.",
+    "Active deep_work or meeting focus modes decrease immediate response probability.",
+    "Intervention action (suppress/defer) delays or prevents prompt interaction.",
+    "Synthetic user archetypes have persistent responsiveness traits.",
+    "Latent simulation traits are strictly isolated from model features."
+  ],
+  "validation_summary": {
+    "is_valid": true,
+    "errors": [],
+    "num_rows": 8000,
+    "num_users": 10,
+    "date_min": "2026-10-01T08:00:58.210663+00:00",
+    "date_max": "2026-10-15T07:59:26.309456+00:00",
+    "target_binary_distribution": {
+      "0": 0.65325,
+      "1": 0.34675
+    },
+    "target_multiclass_distribution": {
+      "opened_later": 0.3515,
+      "opened_quickly": 0.34675,
+      "ignored": 0.30175
+    },
+    "decision_distribution": {
+      "allow": 0.694625,
+      "defer": 0.214375,
+      "suppress": 0.091
+    },
+    "app_distribution": {
+      "WhatsApp": 0.220375,
+      "Twitter": 0.16025,
+      "Instagram": 0.15675,
+      "Slack": 0.124875,
+      "Gmail": 0.092375
+    }
+  }
+}
