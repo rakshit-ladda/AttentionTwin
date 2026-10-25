@@ -200,3 +200,23 @@ cd android
 .\gradlew.bat assembleDebug
 ```
 
+---
+
+## Hackathon Problem Statement Compliance & Phase 8
+
+AttentionTwin directly implements the core scenario specified in the problem statement:
+> *When a user is coding and receives a social notification such as "Someone liked your post," the system estimates what might happen if the notification is allowed, including interruption duration, whether the social app is opened, time spent browsing, and delay before resuming the original task, while comparing alternative actions (allow, defer, suppress).*
+
+### 1. The Four Estimated Disruption Metrics
+For each scenario action (`allow`, `defer`, `suppress`), the engine computes:
+1. **App Opening Probability & Class:** Model-predicted probability of opening the notification quickly ($P(\text{opened quickly})$).
+2. **Time Spent Browsing ($T_{\text{browse}}$):** App-category duration distributions conditioned on open likelihood (e.g. ~14 min for social apps, ~5 min for communication, ~2 min for alerts).
+3. **Task-Resumption Delay ($T_{\text{resume}}$):** Cognitive context-switching resumption overhead based on focus mode (e.g. ~12.5 min to recover deep work coding flow, based on Mark et al. research).
+4. **Total Interruption Duration ($T_{\text{total}}$):** Calculated as $T_{\text{browse}} + T_{\text{resume}}$ for immediate interruptions, or $0.0$ min primary-task loss when deferred or suppressed.
+
+### 2. Defensible Recommendation Policy
+- **DEFER (Preserve Flow):** Recommended when incoming non-urgent notifications (social, entertainment) arrive during `deep_work` or active focus sessions. Scheduled for the next break window (`+25m`), keeping task disruption at **0.0 minutes**.
+- **SUPPRESS (Eliminate Distraction):** Recommended for marketing/promotional interruptions during work hours, routing to an end-of-day silent digest.
+- **ALLOW (Immediate):** Recommended for critical system alerts or during unstructured casual browsing / off-hours where attention loss is minimal.
+
+

@@ -102,12 +102,19 @@ export interface CounterfactualScenarioResult {
   expected_interruption_risk: string;
   timing_explanation: string;
   support_warning?: string;
+  estimated_interruption_minutes: number;
+  estimated_browsing_minutes: number;
+  estimated_resumption_delay_minutes: number;
+  deferred_delivery_minutes?: number | null;
+  is_recommended?: boolean;
 }
 
 export interface CounterfactualCompareResponse {
   notification_summary: Record<string, unknown>;
   scenarios: CounterfactualScenarioResult[];
   relative_comparison_summary: string;
+  recommended_action: string;
+  recommendation_rationale: string;
   model_version: string;
   data_provenance: string;
   limitations_disclaimer: string;

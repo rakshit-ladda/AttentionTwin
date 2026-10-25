@@ -27,6 +27,30 @@ interface PresetScenario {
 
 const PRESET_SCENARIOS: PresetScenario[] = [
   {
+    id: 'hackathon-coding-social',
+    name: 'Coding in Deep Work — Social Alert (Hackathon)',
+    description: "User is coding in deep work and receives 'Someone liked your post' (Instagram). AttentionTwin estimates interruption duration, browsing time, and resumption delay, recommending DEFER to protect flow.",
+    request: {
+      source_app: 'Instagram',
+      app_category: 'social',
+      notification_category: 'social_like',
+      text_length: 32,
+      hour_of_day: 14,
+      day_of_week: 1, // Tuesday
+      is_weekend: 0,
+      focus_mode: 'deep_work',
+      is_focus_session: 1,
+      recent_notification_count_15m: 1,
+      minutes_since_last_notification: 40.0,
+      notification_load_1h: 2,
+      app_historical_open_rate: 0.70,
+      app_historical_ignore_rate: 0.15,
+      user_historical_open_rate: 0.55,
+      recent_allow_rate_1h: 0.5,
+      recent_suppress_rate_1h: 0.2,
+    },
+  },
+  {
     id: 'deep-work-slack',
     name: 'Direct Message during Deep Work',
     description: 'High-priority team DM arriving in the middle of a focused coding session.',

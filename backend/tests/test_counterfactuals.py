@@ -189,3 +189,42 @@ def test_no_writes_to_observed_outcomes_database():
         assert post_outcomes_count == initial_outcomes_count
     finally:
         db.close()
+
+
+def test_social_notification_during_coding_estimates_and_recommends_defer():
+    """Verify hackathon requirement: social notification while coding estimates durations and recommends DEFER."""
+    payload = {
+        "source_app": "Instagram",
+        "app_category": "social",
+        "notification_category": "social_like",
+        "text_length": 42,
+        "hour_of_day": 14,
+        "day_of_week": 1,
+        "is_weekend": 0,
+        "focus_mode": "deep_work",
+        "is_focus_session": 1,
+    }
+    res = client.post("/api/counterfactuals/compare", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+
+    assert data["recommended_action"] == "defer"
+    assert "focus" in data["recommendation_rationale"].lower() or "coding" in data["recommendation_rationale"].lower()
+
+    scenarios_by_action = {s["proposed_action"]: s for s in data["scenarios"]}
+    
+    allow = scenarios_by_action["allow"]
+    assert allow["estimated_interruption_minutes"] > 0
+    assert allow["estimated_browsing_minutes"] > 0
+    assert allow["estimated_resumption_delay_minutes"] > 0
+    assert allow["is_recommended"] is False
+
+    defer = scenarios_by_action["defer"]
+    assert defer["estimated_interruption_minutes"] == 0.0
+    assert defer["deferred_delivery_minutes"] == 25
+    assert defer["is_recommended"] is True
+
+    suppress = scenarios_by_action["suppress"]
+    assert suppress["estimated_interruption_minutes"] == 0.0
+    assert suppress["is_recommended"] is False
+

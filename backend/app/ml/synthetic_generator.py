@@ -166,14 +166,29 @@ class SyntheticDataGenerator:
                     opened_within_5min = 1
                     latency_seconds = float(self.rng.exponential(scale=60.0))
                     latency_seconds = max(5.0, min(latency_seconds, 290.0))
+                    # Grounded durations: social/entertainment apps have longer browsing sessions
+                    base_browse = 14.0 if app_cat in ("social", "entertainment") else 4.0
+                    browsing_mins = round(float(self.rng.normal(base_browse, 2.5)), 1)
+                    browsing_mins = max(1.0, min(browsing_mins, 45.0))
+                    # Resumption delay: cognitive re-entry cost into code flow during deep work
+                    base_resume = 12.0 if focus_mode == "deep_work" else 2.5
+                    resumption_mins = round(float(self.rng.normal(base_resume, 2.0)), 1)
+                    resumption_mins = max(0.5, min(resumption_mins, 30.0))
+                    total_interruption_mins = round(browsing_mins + resumption_mins, 1)
                 elif outcome_roll < open_quick_prob + (1.0 - open_quick_prob) * 0.55:
                     outcome_label = "opened_later"
                     opened_within_5min = 0
                     latency_seconds = float(self.rng.uniform(300.0, 7200.0))
+                    browsing_mins = round(float(self.rng.uniform(2.0, 10.0)), 1)
+                    resumption_mins = 0.0
+                    total_interruption_mins = browsing_mins
                 else:
                     outcome_label = "ignored"
                     opened_within_5min = 0
                     latency_seconds = None
+                    browsing_mins = 0.0
+                    resumption_mins = 0.0
+                    total_interruption_mins = 0.0
 
                 event_record = {
                     "event_id": event_global_id,
@@ -196,6 +211,9 @@ class SyntheticDataGenerator:
                         "outcome_label": outcome_label,
                         "opened_within_5min": opened_within_5min,
                         "response_latency_seconds": latency_seconds,
+                        "browsing_duration_minutes": browsing_mins,
+                        "task_resumption_delay_minutes": resumption_mins,
+                        "total_interruption_minutes": total_interruption_mins,
                     },
                     # Simulation latent metadata (STRICTLY ISOLATED, NOT EXPOSED TO MODEL)
                     "simulation_metadata": {
