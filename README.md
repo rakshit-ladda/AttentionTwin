@@ -1,5 +1,7 @@
 # AttentionTwin — Personal Attention Digital Twin
 
+> **Verified implementation status (2026-10-26):** AttentionTwin currently has a React/Capacitor dashboard, a FastAPI/SQLite backend, and an action-conditioned opening classifier trained on synthetic data. It does **not** yet include an Android notification listener, on-device event store/inference, real notification snoozing or scheduling, or a laptop-independent phone runtime. Duration figures and the `+25m` deferral in the current counterfactual endpoint are rule-based illustrations, not trained personal estimates or causal outcomes. See [`docs/PROBLEM_STATEMENT_COMPLIANCE.md`](docs/PROBLEM_STATEMENT_COMPLIANCE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md) for the audited scope and remaining work.
+
 > **CASCADE 2026 — IIIT Nagpur Hackathon Project**  
 > **Phase 1: Project Foundation & Architecture Shell**  
 > **Phase 2: Database Persistence & Event APIs**  
