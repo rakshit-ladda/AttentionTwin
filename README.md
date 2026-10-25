@@ -5,7 +5,9 @@
 > **Phase 2: Database Persistence & Event APIs**  
 > **Phase 3: Synthetic Dataset Generation & Feature Engineering**  
 > **Phase 4: Baseline Machine Learning Prediction Engine**  
-> **Phase 5: Action-Aware Counterfactual Comparison Engine**
+> **Phase 5: Action-Aware Counterfactual Comparison Engine**  
+> **Phase 6: Live Dashboard, History Panel & Model Status UI**  
+> **Phase 7: Native Android APK (Capacitor)**
 
 AttentionTwin is a personal Attention Digital Twin designed to model how an individual responds to notifications and estimate the outcomes of **allowing**, **suppressing**, or **deferring** a notification.
 
@@ -151,3 +153,50 @@ npm run dev
 ```
 - Frontend UI: `http://localhost:5173`
 - Production Build Check: `npm run build`
+
+---
+
+## Android Native Application (Phase 7)
+
+The frontend is packaged as an installable native Android application using Capacitor (`com.attentiontwin.app`).
+
+### 1. Pre-built APK Artifact
+- **APK Path:** `frontend/android/app/build/outputs/apk/debug/app-debug.apk`
+- **Package ID:** `com.attentiontwin.app`
+- **Application Name:** `AttentionTwin`
+- **Size:** ~4.3 MB
+
+### 2. Run Backend for Mobile Device Access
+For the Android app to connect to the backend over your local network:
+```powershell
+.venv\Scripts\python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload
+```
+Find your laptop's local IP address (`ipconfig`, e.g. `192.168.1.15`).
+
+### 3. Connect Android App to Backend
+1. Open the **AttentionTwin** app on your phone or emulator.
+2. Tap the **⚙ (Gear)** icon in the top header.
+3. Enter your backend URL:
+   - Physical device on same Wi-Fi: `http://<YOUR_LAPTOP_IP>:8000` (e.g., `http://192.168.1.15:8000`)
+   - Android Emulator: `http://10.0.2.2:8000` (preset button provided)
+   - Desktop / Web Browser: `http://localhost:8000` (preset button provided)
+4. Tap **Save & Reconnect**. The app will verify connectivity with `/api/health`.
+
+### 4. Install APK on Android Device
+Using ADB:
+```powershell
+D:\Android\sdk\platform-tools\adb.exe install -r frontend\android\app\build\outputs\apk\debug\app-debug.apk
+```
+Or copy `app-debug.apk` to your phone via USB or Google Drive and install directly (allow installation from unknown sources when prompted).
+
+### 5. Rebuilding the APK
+```powershell
+cd d:\digital_twin\frontend
+npm run build
+npx cap sync android
+$env:JAVA_HOME = "D:\jdk-21.0.4+7"
+$env:ANDROID_HOME = "D:\Android\sdk"
+cd android
+.\gradlew.bat assembleDebug
+```
+

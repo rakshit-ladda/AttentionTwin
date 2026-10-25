@@ -130,16 +130,47 @@ export interface ModelStatusResponse {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    throw new Error(`${res.status} ${text}`);
+export function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('attentiontwin_api_base_url');
+    if (custom) return custom.trim().replace(/\/+$/, '');
   }
-  return res.json() as Promise<T>;
+  const envUrl = (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL;
+  if (envUrl) return envUrl.trim().replace(/\/+$/, '');
+  return '';
+}
+
+export function setApiBaseUrl(url: string): void {
+  if (typeof window === 'undefined') return;
+  const clean = url.trim().replace(/\/+$/, '');
+  if (!clean) {
+    localStorage.removeItem('attentiontwin_api_base_url');
+  } else {
+    localStorage.setItem('attentiontwin_api_base_url', clean);
+  }
+}
+
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const baseUrl = getApiBaseUrl();
+  const fullUrl = baseUrl ? `${baseUrl}${path}` : path;
+
+  try {
+    const res = await fetch(fullUrl, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+    return (await res.json()) as Promise<T>;
+  } catch (err: unknown) {
+    if (err instanceof TypeError && (err.message.includes('fetch') || err.message.includes('NetworkError') || err.message.includes('Failed'))) {
+      const target = baseUrl || 'local Vite proxy (/api)';
+      throw new Error(`Cannot connect to backend (${target}). Ensure FastAPI is running on host 0.0.0.0 and your device is on the same network.`);
+    }
+    throw err;
+  }
 }
 
 // ── API functions ──────────────────────────────────────────────────────────
@@ -170,4 +201,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  /** Mobile / Config helpers */
+  getBaseUrl: getApiBaseUrl,
+  setBaseUrl: setApiBaseUrl,
 };
