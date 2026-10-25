@@ -2,9 +2,11 @@
 
 ## Current implementation
 
-The Android project at `frontend/android` is a Capacitor 8 WebView wrapper with Java `MainActivity`. It targets SDK 36 and has min SDK 24. The merged source manifest declares Internet and network-state permissions only. There is no notification listener, app-usage access onboarding, Room database, AlarmManager/WorkManager scheduling, boot receiver, or native-to-JavaScript AttentionTwin plugin.
+The Android project at `frontend/android` is a Capacitor 8 WebView wrapper with Java `MainActivity`. It targets SDK 36 and has min SDK 24. `AttentionNotificationListener` is declared with `BIND_NOTIFICATION_LISTENER_SERVICE`; `AttentionListenerPlugin` reports access/connection status, reads/deletes local history, opens Android access settings, stores up to 12 daily local break times, and lets the user snooze an active event to the next configured time on API 26+. `NotificationAccessPanel` exposes this flow in the native app.
 
-The React app currently queries the FastAPI health endpoint. Native builds need a configured backend URL in the existing UI, so this APK is not yet an offline phone runtime.
+The local log uses a bounded 200-record `SharedPreferences` store with at most 32 transitions per record. It retains a SHA-256-derived event ID, source package, posted/updated/removed timestamps, lifecycle transition trail, clearability, removal reason, and expected snooze repost time; it does not persist title/body or Android's raw notification key. Event IDs deduplicate update/removal callbacks and permit an in-memory lookup for a user-triggered snooze. Android backup is disabled so this metadata is not included in app backup. This is a first metadata milestone, not a Room-backed general event schema. Break delivery uses Android system snoozing after a manual action; there is no automatic policy routing, exact-time guarantee, reboot receiver, or offline model inference.
+
+The React app still queries the FastAPI health endpoint for its dashboard and counterfactual views. Native notification observation and snoozing are local, but predictions and the main dashboard need a configured backend URL. This APK is not yet an offline attention-management runtime.
 
 ## Public notification API boundary
 

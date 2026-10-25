@@ -6,6 +6,7 @@ import { AttentionProfile } from './components/AttentionProfile';
 import { NotificationSimulator } from './components/NotificationSimulator';
 import { CounterfactualComparison } from './components/CounterfactualComparison';
 import { HistoryPanel } from './components/HistoryPanel';
+import { NotificationAccessPanel } from './components/NotificationAccessPanel';
 import { NavTab, HealthStatus } from './types';
 import { api, getApiBaseUrl, isNativeApp } from './api';
 import './App.css';
@@ -84,6 +85,7 @@ export const App: React.FC = () => {
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="app-main">
+        {isNativeApp() && <NotificationAccessPanel />}
         <StatusBanner
           health={health}
           onRetry={checkHealth}

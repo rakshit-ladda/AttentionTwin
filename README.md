@@ -1,6 +1,6 @@
 # AttentionTwin — Personal Attention Digital Twin
 
-> **Verified implementation status (2026-10-26):** AttentionTwin currently has a React/Capacitor dashboard, a FastAPI/SQLite backend, and an action-conditioned opening classifier trained on synthetic data. It does **not** yet include an Android notification listener, on-device event store/inference, real notification snoozing or scheduling, or a laptop-independent phone runtime. Duration figures and the `+25m` deferral in the current counterfactual endpoint are rule-based illustrations, not trained personal estimates or causal outcomes. See [`docs/PROBLEM_STATEMENT_COMPLIANCE.md`](docs/PROBLEM_STATEMENT_COMPLIANCE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md) for the audited scope and remaining work.
+> **Verified implementation status (2026-10-26):** AttentionTwin has a React/Capacitor dashboard, a FastAPI/SQLite backend, and an action-conditioned opening classifier trained on synthetic data. The Android source now has an opt-in listener that stores minimized metadata locally and lets the user snooze an active notification until the next configured daily break time on Android 8+. This does not guarantee prevention of the first alert or exact release timing, and it does not make automatic decisions or provide local model inference; dashboard predictions still require the laptop backend. Duration figures and `+25m` in the counterfactual API remain rule-based illustrations, not trained personal estimates or causal outcomes. See [`docs/PROBLEM_STATEMENT_COMPLIANCE.md`](docs/PROBLEM_STATEMENT_COMPLIANCE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md) for verified scope and remaining work.
 
 > **CASCADE 2026 — IIIT Nagpur Hackathon Project**  
 > **Phase 1: Project Foundation & Architecture Shell**  
@@ -112,21 +112,16 @@ Chronological Split (80% train / 20% test per user):
 
 ## Quickstart Guide (Windows PowerShell)
 
-### 1. Run Complete Automated Test Suite (32 Tests)
+### 1. Run Backend Automated Test Suite (39 Tests)
 
 ```powershell
 $env:PYTHONPATH="backend"
 .venv\Scripts\python -m pytest backend\tests -v
 ```
 
-Expected output:
+Latest verified result:
 ```
-backend/tests/test_counterfactuals.py (8 passed)
-backend/tests/test_events.py (9 passed)
-backend/tests/test_health.py (2 passed)
-backend/tests/test_ml_pipeline.py (8 passed)
-backend/tests/test_synthetic_data.py (5 passed)
-======================== 32 passed, 1 warning in 4.42s ========================
+============================== 39 passed, 1 warning ==============================
 ```
 
 ### 2. Retrain Models (Optional)
@@ -160,7 +155,9 @@ npm run dev
 
 ## Android Native Application (Phase 7)
 
-The frontend is packaged as an installable native Android application using Capacitor (`com.attentiontwin.app`).
+The Capacitor Android source (`com.attentiontwin.app`) now contains a metadata-only notification listener and manual system snooze action. The APK listed below predates those source changes; it has not yet been rebuilt because JDK 21 cannot initialize its selector loopback pipe in this environment.
+
+After a successful rebuild, the listener requires the user to enable Notification Access in Android Settings. The app stores a bounded local metadata history. A user can configure daily break times and manually snooze an active notification until the next one on Android 8+. Android controls the eventual repost timing; this is not automatic policy routing or guaranteed exact delivery. The dashboard prediction screens still require the laptop backend.
 
 ### 1. Pre-built APK Artifact
 - **APK Path:** `frontend/android/app/build/outputs/apk/debug/app-debug.apk`
@@ -204,21 +201,18 @@ cd android
 
 ---
 
-## Hackathon Problem Statement Compliance & Phase 8
+## Current API scenario comparison (synthetic and rule-based)
 
-AttentionTwin directly implements the core scenario specified in the problem statement:
-> *When a user is coding and receives a social notification such as "Someone liked your post," the system estimates what might happen if the notification is allowed, including interruption duration, whether the social app is opened, time spent browsing, and delay before resuming the original task, while comparing alternative actions (allow, defer, suppress).*
+The `/api/counterfactuals/compare` endpoint compares one submitted scenario under `allow`, `defer`, and `suppress`. It is an exploratory simulation; the action-conditioned opening classifier is trained on synthetic data and does not identify causal effects for unchosen actions.
 
-### 1. The Four Estimated Disruption Metrics
-For each scenario action (`allow`, `defer`, `suppress`), the engine computes:
-1. **App Opening Probability & Class:** Model-predicted probability of opening the notification quickly ($P(\text{opened quickly})$).
-2. **Time Spent Browsing ($T_{\text{browse}}$):** App-category duration distributions conditioned on open likelihood (e.g. ~14 min for social apps, ~5 min for communication, ~2 min for alerts).
-3. **Task-Resumption Delay ($T_{\text{resume}}$):** Cognitive context-switching resumption overhead based on focus mode (e.g. ~12.5 min to recover deep work coding flow, based on Mark et al. research).
-4. **Total Interruption Duration ($T_{\text{total}}$):** Calculated as $T_{\text{browse}} + T_{\text{resume}}$ for immediate interruptions, or $0.0$ min primary-task loss when deferred or suppressed.
+### What the API currently returns
 
-### 2. Defensible Recommendation Policy
-- **DEFER (Preserve Flow):** Recommended when incoming non-urgent notifications (social, entertainment) arrive during `deep_work` or active focus sessions. Scheduled for the next break window (`+25m`), keeping task disruption at **0.0 minutes**.
-- **SUPPRESS (Eliminate Distraction):** Recommended for marketing/promotional interruptions during work hours, routing to an end-of-day silent digest.
-- **ALLOW (Immediate):** Recommended for critical system alerts or during unstructured casual browsing / off-hours where attention loss is minimal.
+- **Quick-open probability:** classifier prediction from synthetic training labels. This is not notification importance.
+- **Browsing time:** hand-authored point value by app category, multiplied by quick-open probability for ALLOW. It is not a learned duration distribution.
+- **Resumption time:** hand-authored point value by focus mode, multiplied by quick-open probability for ALLOW. It is not a personalized or measured outcome.
+- **Immediate disruption:** sum of those two heuristic terms for ALLOW; the API assigns zero immediate cost to DEFER and SUPPRESS by assumption.
+- **Recommendation:** a fixed rule-based policy. The displayed DEFER interval (`+25m`) is illustrative and is not connected to Android delivery. Separately, the native UI lets a user configure daily break times and manually request system snoozing until the next one.
+
+These figures must not be presented as empirical or causal results. See [`docs/COUNTERFACTUAL_DESIGN.md`](docs/COUNTERFACTUAL_DESIGN.md) and [`docs/DATA_AND_ML.md`](docs/DATA_AND_ML.md).
 
 

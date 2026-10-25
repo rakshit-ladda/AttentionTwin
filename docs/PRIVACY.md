@@ -2,7 +2,7 @@
 
 ## Current implementation
 
-The Android shell currently has no notification listener or local notification store. The backend `NotificationEvent` SQLAlchemy model includes a required `text` field and can persist notification text when clients submit it. The React simulator/API path is not an on-device private notification pipeline. The backend SQLite database is ignored by Git, but local persistence is not encryption or a deletion policy by itself.
+The Android listener currently stores at most 200 metadata records in app-private `SharedPreferences`, with at most 32 transitions per record: generated hash ID, source package, timestamps, clearability, lifecycle state, and removal reason. It omits title/body, previews, contact identity, and raw system key; the app has a clear-history action. Android app backup is disabled. SharedPreferences is app-private storage but is not an encrypted database. The backend `NotificationEvent` SQLAlchemy model separately includes required `text` and can persist notification text when clients submit it. The React simulator/API path still calls the backend.
 
 ## Required defaults for native collection
 
