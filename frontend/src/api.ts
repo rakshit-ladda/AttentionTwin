@@ -228,7 +228,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
-async function withOnDeviceFallback<T>(local: () => T, remote: () => Promise<T>): Promise<T> {
+async function withOnDeviceFallback<T>(local: () => T | Promise<T>, remote: () => Promise<T>): Promise<T> {
   if (!isNativeApp()) return remote();
   if (!getApiBaseUrl()) return local();
   try {
