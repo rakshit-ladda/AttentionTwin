@@ -14,6 +14,7 @@ export interface LocalNotificationEvent {
   removedAt?: number;
   deferredUntil?: number;
   removalReason?: number;
+  transitions?: Array<{ state: string; at: number; reason?: number }>;
   clearable: boolean;
   state: 'active' | 'removed' | 'deferred';
 }

@@ -7,6 +7,7 @@ import type {
   NotificationEventCreate,
   NotificationEventResponse,
 } from '../api';
+import { attentionListener, LocalNotificationEvent } from './attentionListener';
 
 const EVENTS_KEY = 'attentiontwin_offline_events_v1';
 
@@ -55,17 +56,80 @@ export function createOfflineEvent(payload: NotificationEventCreate): Notificati
   return event;
 }
 
-export function listOfflineEvents(limit = 50, offset = 0): NotificationEventResponse[] {
-  return readEvents().slice(offset, offset + limit);
+function nativeEventNumberId(id: string): number {
+  return Number.parseInt(id.slice(0, 8), 16) || 1;
 }
 
-export function getOfflineEventHistory(eventId: number): EventHistoryResponse {
-  const event = readEvents().find((item) => item.id === eventId);
+function nativeEventAsHistoryItem(item: LocalNotificationEvent): NotificationEventResponse {
+  return {
+    id: nativeEventNumberId(item.id),
+    text: '[Notification text not stored on this device]',
+    source_app: item.packageName,
+    category: 'notification',
+    timestamp: new Date(item.postedAt).toISOString(),
+    context_data: {
+      local_notification_id: item.id,
+      lifecycle_state: item.state,
+      updated_at: item.updatedAt,
+      removed_at: item.removedAt,
+      deferred_until: item.deferredUntil,
+      removal_reason: item.removalReason,
+      clearable: item.clearable,
+    },
+  };
+}
+
+async function readNativeEvents(): Promise<LocalNotificationEvent[]> {
+  try {
+    const { events } = await attentionListener.getEvents();
+    return events;
+  } catch {
+    return [];
+  }
+}
+
+export async function listOfflineEvents(limit = 50, offset = 0): Promise<NotificationEventResponse[]> {
+  const nativeItems = (await readNativeEvents()).map(nativeEventAsHistoryItem);
+  return [...readEvents(), ...nativeItems]
+    .sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp))
+    .slice(offset, offset + limit);
+}
+
+export async function getOfflineEventHistory(eventId: number): Promise<EventHistoryResponse> {
+  const savedEvent = readEvents().find((item) => item.id === eventId);
+  const nativeItem = (await readNativeEvents()).find((item) => nativeEventNumberId(item.id) === eventId);
+  const event = savedEvent ?? (nativeItem ? nativeEventAsHistoryItem(nativeItem) : null);
   if (!event) throw new Error('This event is not in the on-device history.');
+
+  const deferredTransition = nativeItem?.transitions?.slice().reverse().find((transition) => transition.state === 'deferred');
+  const decisions = deferredTransition ? [{
+    id: deferredTransition.at,
+    event_id: event.id,
+    action: 'defer',
+    reason: 'User snoozed the notification until a configured break.',
+    timestamp: new Date(deferredTransition.at).toISOString(),
+  }] : [];
+  const latestRemoval = nativeItem?.transitions?.slice().reverse().find((transition) => transition.state === 'removed');
+  const removalReason = nativeItem?.removalReason ?? latestRemoval?.reason;
+  const outcomeAt = nativeItem?.removedAt ?? latestRemoval?.at ?? nativeItem?.updatedAt ?? Date.now();
+  const outcomeType = nativeItem?.state === 'deferred'
+    ? 'deferred'
+    : removalReason === 1
+      ? 'opened_notification'
+      : removalReason === 2 || removalReason === 3
+        ? 'dismissed'
+        : null;
+  const observed_outcomes = nativeItem && outcomeType ? [{
+    id: outcomeAt,
+    event_id: event.id,
+    outcome_type: outcomeType,
+    interaction_measurements: { removal_reason: removalReason ?? null },
+    timestamp: new Date(outcomeAt).toISOString(),
+  }] : [];
   return {
     event,
-    decisions: [],
-    observed_outcomes: [],
+    decisions,
+    observed_outcomes,
     counterfactual_predictions: [],
     feedback: [],
   };
