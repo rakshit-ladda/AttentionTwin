@@ -12,7 +12,7 @@ import org.json.JSONObject;
 /** App-private SQLite store. Message content is nullable and omitted by default. */
 public final class Store extends SQLiteOpenHelper {
     private static final String DB_NAME = "attentiontwin.db";
-    private static final int DB_VERSION = 1;
+    private static final int DB_VERSION = 2;
     private static final String EVENTS = "events";
     private static final String STATS = "app_stats";
 
@@ -21,6 +21,7 @@ public final class Store extends SQLiteOpenHelper {
         public String pkg = "";
         public String label = "";
         public String category = "other";
+        public String role = "SMART";
         public String channel = "";
         public long ts;
         public boolean focus;
@@ -43,13 +44,18 @@ public final class Store extends SQLiteOpenHelper {
     public Store(Context context) { super(context, DB_NAME, null, DB_VERSION); }
 
     @Override public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, nkey TEXT NOT NULL, pkg TEXT NOT NULL, label TEXT NOT NULL, category TEXT NOT NULL, channel TEXT, ts INTEGER NOT NULL, focus INTEGER NOT NULL, action TEXT NOT NULL, state TEXT NOT NULL, reason TEXT, pOpen REAL, cAllow REAL, cDefer REAL, cSuppress REAL, importance REAL, releaseAt INTEGER, preview TEXT, source TEXT NOT NULL, opened INTEGER NOT NULL DEFAULT 0, feedback TEXT, exception TEXT)");
+        db.execSQL("CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, nkey TEXT NOT NULL, pkg TEXT NOT NULL, label TEXT NOT NULL, category TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'SMART', channel TEXT, ts INTEGER NOT NULL, focus INTEGER NOT NULL, action TEXT NOT NULL, state TEXT NOT NULL, reason TEXT, pOpen REAL, cAllow REAL, cDefer REAL, cSuppress REAL, importance REAL, releaseAt INTEGER, preview TEXT, source TEXT NOT NULL, opened INTEGER NOT NULL DEFAULT 0, feedback TEXT, exception TEXT)");
         db.execSQL("CREATE INDEX events_ts_idx ON events(ts DESC)");
         db.execSQL("CREATE INDEX events_nkey_idx ON events(nkey, ts DESC)");
         db.execSQL("CREATE TABLE app_stats (pkg TEXT NOT NULL, source TEXT NOT NULL, shown INTEGER NOT NULL DEFAULT 0, opened INTEGER NOT NULL DEFAULT 0, impUp INTEGER NOT NULL DEFAULT 0, impDown INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(pkg, source))");
     }
 
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { }
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE events ADD COLUMN role TEXT NOT NULL DEFAULT 'SMART'");
+            db.execSQL("UPDATE events SET role='BLOCK_IN_FOCUS' WHERE pkg IN ('com.whatsapp','com.instagram.android','com.google.android.gm')");
+        }
+    }
 
     public synchronized long insert(Event e) {
         SQLiteDatabase db = getWritableDatabase();
@@ -104,6 +110,14 @@ public final class Store extends SQLiteOpenHelper {
 
     public synchronized JSONArray heldEvents(boolean includeDemo) {
         return listEvents("HELD", 300, includeDemo);
+    }
+
+    public synchronized int countSince(long since, String source) {
+        String selection = "ts>=?" + (source == null ? " AND source!='demo'" : " AND source=?");
+        String[] args = source == null ? new String[]{String.valueOf(since)} : new String[]{String.valueOf(since), source};
+        try (Cursor c = getReadableDatabase().query(EVENTS, new String[]{"COUNT(*)"}, selection, args, null, null, null)) {
+            return c.moveToFirst() ? c.getInt(0) : 0;
+        }
     }
 
     public synchronized void incrementShown(String pkg, String source) {
@@ -212,7 +226,7 @@ public final class Store extends SQLiteOpenHelper {
 
     private static ContentValues values(Event e) {
         ContentValues v = new ContentValues();
-        v.put("nkey", e.nkey); v.put("pkg", e.pkg); v.put("label", e.label); v.put("category", e.category);
+        v.put("nkey", e.nkey); v.put("pkg", e.pkg); v.put("label", e.label); v.put("category", e.category); v.put("role", e.role);
         v.put("channel", e.channel); v.put("ts", e.ts); v.put("focus", e.focus ? 1 : 0); v.put("action", e.action);
         v.put("state", e.state); v.put("reason", e.reason); v.put("pOpen", e.pOpen); v.put("cAllow", e.cAllow);
         v.put("cDefer", e.cDefer); v.put("cSuppress", e.cSuppress); v.put("importance", e.importance);

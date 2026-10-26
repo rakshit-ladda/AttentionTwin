@@ -7,9 +7,10 @@ import java.util.regex.Pattern;
 public final class DecisionEngine {
     public enum Action { ALLOW, DEFER, SUPPRESS }
     public enum Role { IMPORTANT, NORMAL, DISTRACTING }
+    public enum AppRole { BLOCK_IN_FOCUS, ALLOW, SMART }
 
     private static final Pattern OTP = Pattern.compile(
-        "\\b(otp|one[- ]time (password|code)|verification code|security code|passcode)\\b|\\b\\d{4,8}\\b",
+        "\\b(otp|one[- ]time (password|code)|verification code|security code|passcode)\\b|\\b(code|otp|passcode|verification)\\D{0,20}\\d{4,8}\\b",
         Pattern.CASE_INSENSITIVE
     );
 
@@ -116,9 +117,42 @@ public final class DecisionEngine {
         return result(chosen, reason, pOpen, importance, allow, defer, suppress, observations, false);
     }
 
+    /** Deterministic routing for live app notifications; estimates are consulted only for SMART. */
+    public Result evaluateForAppRole(Input input, AppRole appRole) {
+        if (input == null) throw new IllegalArgumentException("input is required");
+        Input safeInput = new Input();
+        safeInput.packageName = input.packageName; safeInput.category = input.category;
+        safeInput.notificationCategory = input.notificationCategory; safeInput.title = input.title;
+        safeInput.text = input.text; safeInput.urgentWords = input.urgentWords;
+        safeInput.role = Role.NORMAL; safeInput.focusActive = input.focusActive;
+        safeInput.keepPreviews = input.keepPreviews; safeInput.minutesToBreak = input.minutesToBreak;
+        safeInput.stats = input.stats;
+        Result estimated = evaluate(safeInput);
+        if (!input.focusActive || estimated.exception) return estimated;
+        AppRole role = appRole == null ? AppRole.SMART : appRole;
+        if (role == AppRole.ALLOW) return result(Action.ALLOW, "This app is set to Allow during focus.", estimated.openRateEstimate, estimated.importanceEstimate, estimated.allowCost, estimated.deferCost, estimated.suppressCost, estimated.observations, false);
+        if (role == AppRole.BLOCK_IN_FOCUS) return result(Action.DEFER, "This app is set to Block in focus.", estimated.openRateEstimate, estimated.importanceEstimate, estimated.allowCost, estimated.deferCost, estimated.suppressCost, estimated.observations, false);
+        Action smartAction = estimated.action == Action.ALLOW ? Action.ALLOW : Action.DEFER;
+        return result(smartAction, "SMART used the local estimate to choose " + smartAction.name() + ".", estimated.openRateEstimate, estimated.importanceEstimate, estimated.allowCost, estimated.deferCost, estimated.suppressCost, estimated.observations, false);
+    }
+
+    public static String hardExceptionReason(Input input) {
+        String content = (safe(input.title) + " " + safe(input.text)).toLowerCase(Locale.ROOT);
+        String category = safe(input.notificationCategory).toLowerCase(Locale.ROOT);
+        String pkg = safe(input.packageName).toLowerCase(Locale.ROOT);
+        if (isCriticalCategory(category) || isCriticalPackage(pkg)) return "Exception: call, alarm, navigation or system notification.";
+        if (OTP.matcher(content).find()) return "Exception: possible OTP/verification code.";
+        if (containsAny(content, input.urgentWords)) return "Exception: user-listed urgent word.";
+        return "";
+    }
+
     /** A system re-post is returned once its scheduled time has arrived; it is never re-decided. */
     public static boolean shouldKeepHeldOnRepost(long releaseAt, long now) {
         return releaseAt > now;
+    }
+
+    public static boolean shouldAllowSnoozeReleaseOnce(long releaseAt, long now) {
+        return releaseAt > 0L && releaseAt <= now;
     }
 
     private static Result result(Action action, String reason, double pOpen, double importance,

@@ -9,5 +9,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(FocusPlugin.class);
         super.onCreate(savedInstanceState);
         FocusScheduler.scheduleNext(this);
+        DndController.reconcile(this);
+        FocusListenerService.recheckAndRebind(this);
     }
 }

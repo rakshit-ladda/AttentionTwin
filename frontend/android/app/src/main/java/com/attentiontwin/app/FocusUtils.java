@@ -68,11 +68,36 @@ final class FocusUtils {
         return Math.max(1, (int) Math.ceil((next - System.currentTimeMillis()) / 60000.0));
     }
 
+    static long nextReleaseAt(Context context) {
+        long now = System.currentTimeMillis();
+        long release = nextBreakAt(context);
+        long focusUntil = focusUntil(context);
+        if (focusUntil > now && focusUntil != Long.MAX_VALUE) release = Math.min(release, focusUntil);
+        if (release == Long.MAX_VALUE) release = now + 8L * 60L * 60L * 1000L;
+        return Math.max(now + 1000L, release);
+    }
+
+    static boolean isVip(Context context, String title, String text) {
+        String configured = prefs(context).getString("vip_contacts", "");
+        String message = ((title == null ? "" : title) + " " + (text == null ? "" : text)).toLowerCase(Locale.ROOT);
+        for (String entry : configured.split(",")) {
+            String name = entry.trim().toLowerCase(Locale.ROOT);
+            if (name.length() >= 2 && message.contains(name)) return true;
+        }
+        return false;
+    }
+
     static String roleFor(Context context, String packageName) {
         String stored = prefs(context).getString("role_" + packageName, null);
+        if ("IMPORTANT".equals(stored)) return DecisionEngine.AppRole.ALLOW.name();
+        if ("DISTRACTING".equals(stored)) return DecisionEngine.AppRole.BLOCK_IN_FOCUS.name();
+        if ("NORMAL".equals(stored)) {
+            if ("com.instagram.android".equals(packageName) || "com.whatsapp".equals(packageName) || "com.google.android.gm".equals(packageName)) return DecisionEngine.AppRole.BLOCK_IN_FOCUS.name();
+            return DecisionEngine.AppRole.SMART.name();
+        }
         if (stored != null) return stored;
-        if ("com.instagram.android".equals(packageName)) return DecisionEngine.Role.DISTRACTING.name();
-        return DecisionEngine.Role.NORMAL.name();
+        if ("com.instagram.android".equals(packageName) || "com.whatsapp".equals(packageName) || "com.google.android.gm".equals(packageName)) return DecisionEngine.AppRole.BLOCK_IN_FOCUS.name();
+        return DecisionEngine.AppRole.SMART.name();
     }
 
     static String categoryFor(String packageName, String label) {
@@ -93,5 +118,28 @@ final class FocusUtils {
             int m = Integer.parseInt(parts[1]);
             return h < 0 || h > 23 || m < 0 || m > 59 ? -1 : h * 60 + m;
         } catch (NumberFormatException ignored) { return -1; }
+    }
+
+    static long nextFocusWindowTransition(Context context) {
+        String schedule = prefs(context).getString("focus_schedule", "");
+        long now = System.currentTimeMillis();
+        long next = Long.MAX_VALUE;
+        Calendar today = Calendar.getInstance();
+        for (String item : schedule.split(",")) {
+            String[] parts = item.trim().split("-");
+            if (parts.length != 2) continue;
+            int start = parseTime(parts[0]), end = parseTime(parts[1]);
+            if (start < 0 || end < 0 || start == end) continue;
+            for (int day = 0; day <= 1; day++) {
+                Calendar startAt = (Calendar) today.clone(); startAt.add(Calendar.DAY_OF_YEAR, day);
+                startAt.set(Calendar.HOUR_OF_DAY, start / 60); startAt.set(Calendar.MINUTE, start % 60); startAt.set(Calendar.SECOND, 0); startAt.set(Calendar.MILLISECOND, 0);
+                if (startAt.getTimeInMillis() > now) next = Math.min(next, startAt.getTimeInMillis());
+                Calendar endAt = (Calendar) today.clone(); endAt.add(Calendar.DAY_OF_YEAR, day);
+                if (end < start) endAt.add(Calendar.DAY_OF_YEAR, 1);
+                endAt.set(Calendar.HOUR_OF_DAY, end / 60); endAt.set(Calendar.MINUTE, end % 60); endAt.set(Calendar.SECOND, 0); endAt.set(Calendar.MILLISECOND, 0);
+                if (endAt.getTimeInMillis() > now) next = Math.min(next, endAt.getTimeInMillis());
+            }
+        }
+        return next;
     }
 }

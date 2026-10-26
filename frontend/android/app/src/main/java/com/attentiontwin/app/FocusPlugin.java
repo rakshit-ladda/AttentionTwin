@@ -38,10 +38,14 @@ public final class FocusPlugin extends Plugin {
     private final DecisionEngine engine = new DecisionEngine();
 
     @PluginMethod public void getState(PluginCall call) {
+        FocusListenerService.recheckAndRebind(getContext());
+        DndController.reconcile(getContext());
         JSObject result = new JSObject();
         long until = FocusUtils.focusUntil(getContext());
         result.put("accessGranted", FocusUtils.hasNotificationAccess(getContext()));
         result.put("listenerConnected", FocusListenerService.connected);
+        result.put("listenerConnectedAt", FocusListenerService.connectedAt);
+        result.put("lastCallbackAt", FocusUtils.prefs(getContext()).getLong("last_callback_at", 0L));
         result.put("focusActive", FocusUtils.isFocusActive(getContext()));
         result.put("focusUntil", until == Long.MAX_VALUE ? -1L : until);
         long nextBreak = FocusUtils.nextBreakAt(getContext());
@@ -49,7 +53,13 @@ public final class FocusPlugin extends Plugin {
         PowerManager power = (PowerManager) getContext().getSystemService(android.content.Context.POWER_SERVICE);
         result.put("batteryOptimizationIgnored", Build.VERSION.SDK_INT < 23 || (power != null && power.isIgnoringBatteryOptimizations(getContext().getPackageName())));
         result.put("manufacturer", Build.MANUFACTURER == null ? "Unknown" : Build.MANUFACTURER);
-        try (Store store = new Store(getContext())) { result.put("today", store.summaryToday()); }
+        boolean dndAccess = DndController.hasAccess(getContext());
+        result.put("dndPolicyAccess", dndAccess);
+        NotificationManager notifications = (NotificationManager) getContext().getSystemService(android.content.Context.NOTIFICATION_SERVICE);
+        boolean dndActive = dndAccess && notifications != null && notifications.getCurrentInterruptionFilter() == NotificationManager.INTERRUPTION_FILTER_PRIORITY;
+        result.put("dndSilencing", FocusUtils.prefs(getContext()).getBoolean("silence_alerts", false) && dndActive && FocusUtils.isFocusActive(getContext()));
+        result.put("autostartState", "Android does not expose this device-specific permission; check Autostart settings.");
+        try (Store store = new Store(getContext())) { result.put("today", store.summaryToday()); result.put("seenLast10m", store.countSince(System.currentTimeMillis() - 10L * 60L * 1000L, null)); }
         call.resolve(result);
     }
 
@@ -60,6 +70,8 @@ public final class FocusPlugin extends Plugin {
         else if (minutes <= 0) until = 0L;
         else until = System.currentTimeMillis() + Math.min(minutes, 12 * 60) * 60000L;
         FocusUtils.prefs(getContext()).edit().putLong("focus_until", until).apply();
+        FocusScheduler.scheduleFocusEnd(getContext());
+        DndController.reconcile(getContext());
         JSObject result = new JSObject();
         result.put("focusActive", FocusUtils.isFocusActive(getContext()));
         result.put("focusUntil", until == Long.MAX_VALUE ? -1L : until);
@@ -70,17 +82,22 @@ public final class FocusPlugin extends Plugin {
         String breaks = call.getString("breakTimes", "").trim();
         String focusSchedule = call.getString("focusSchedule", "").trim();
         String urgentWords = call.getString("urgentWords", "").trim();
+        String vipContacts = call.getString("vipContacts", "").trim();
         boolean keepPreviews = call.getBoolean("keepPreviews", false);
+        boolean silenceAlerts = call.getBoolean("silenceAlerts", false);
         if (!validTimes(breaks, 12, false)) { call.reject("Use up to 12 break times such as 10:30,13:00,15:30"); return; }
         if (!validWindows(focusSchedule, 8)) { call.reject("Use focus windows such as 09:00-12:00,13:00-17:00"); return; }
-        if (urgentWords.length() > 500) { call.reject("Urgent words are limited to 500 characters"); return; }
+        if (urgentWords.length() > 500 || vipContacts.length() > 500) { call.reject("Urgent words and VIP contacts are limited to 500 characters"); return; }
         FocusUtils.prefs(getContext()).edit()
             .putString("break_times", breaks)
             .putString("focus_schedule", focusSchedule)
             .putString("urgent_words", urgentWords)
+            .putString("vip_contacts", vipContacts)
             .putBoolean("keep_previews", keepPreviews)
+            .putBoolean("silence_alerts", silenceAlerts)
             .apply();
         FocusScheduler.scheduleNext(getContext());
+        DndController.reconcile(getContext());
         call.resolve(settingsObject());
     }
 
@@ -102,14 +119,18 @@ public final class FocusPlugin extends Plugin {
             item.put("role", FocusUtils.roleFor(getContext(), pkg));
             result.put(item);
         }
-        call.resolve(new JSObject().put("apps", result));
+        java.util.ArrayList<JSONObject> sorted = new java.util.ArrayList<>();
+        for (int i=0;i<result.length();i++) sorted.add(result.optJSONObject(i));
+        java.util.Collections.sort(sorted, (a,b) -> Integer.compare(priority(a), priority(b)));
+        JSArray ordered = new JSArray(); for (JSONObject item : sorted) ordered.put(item);
+        call.resolve(new JSObject().put("apps", ordered));
     }
 
     @PluginMethod public void setRole(PluginCall call) {
         String pkg = call.getString("packageName", "").trim();
-        String role = call.getString("role", "NORMAL").trim().toUpperCase(Locale.ROOT);
-        try { DecisionEngine.Role.valueOf(role); }
-        catch (IllegalArgumentException error) { call.reject("Role must be IMPORTANT, NORMAL, or DISTRACTING"); return; }
+        String role = call.getString("role", "SMART").trim().toUpperCase(Locale.ROOT);
+        try { DecisionEngine.AppRole.valueOf(role); }
+        catch (IllegalArgumentException error) { call.reject("Role must be BLOCK_IN_FOCUS, ALLOW, or SMART"); return; }
         if (pkg.isEmpty() || pkg.equals(getContext().getPackageName())) { call.reject("Choose an installed app"); return; }
         FocusUtils.prefs(getContext()).edit().putString("role_" + pkg, role).apply();
         call.resolve(new JSObject().put("packageName", pkg).put("role", role));
@@ -255,6 +276,8 @@ public final class FocusPlugin extends Plugin {
     }
 
     @PluginMethod public void clearData(PluginCall call) {
+        FocusUtils.prefs(getContext()).edit().putLong("focus_until", 0L).apply();
+        DndController.reconcile(getContext());
         try (Store store = new Store(getContext())) { store.deleteAll(); }
         FocusUtils.prefs(getContext()).edit().clear().apply();
         FocusScheduler.scheduleNext(getContext());
@@ -276,6 +299,10 @@ public final class FocusPlugin extends Plugin {
 
     @PluginMethod public void openBatterySettings(PluginCall call) {
         openIntent(call, new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+    }
+
+    @PluginMethod public void openDndSettings(PluginCall call) {
+        openIntent(call, new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS));
     }
 
     @PluginMethod public void openAutostart(PluginCall call) {
@@ -311,7 +338,18 @@ public final class FocusPlugin extends Plugin {
         return new JSObject().put("breakTimes", prefs.getString("break_times", "10:30,13:00,15:30"))
             .put("focusSchedule", prefs.getString("focus_schedule", ""))
             .put("keepPreviews", prefs.getBoolean("keep_previews", false))
-            .put("urgentWords", prefs.getString("urgent_words", ""));
+            .put("urgentWords", prefs.getString("urgent_words", ""))
+            .put("vipContacts", prefs.getString("vip_contacts", ""))
+            .put("silenceAlerts", prefs.getBoolean("silence_alerts", false));
+    }
+
+    private int priority(JSONObject item) {
+        if (item == null) return 10;
+        String pkg = item.optString("packageName", "");
+        if ("com.whatsapp".equals(pkg)) return 0;
+        if ("com.instagram.android".equals(pkg)) return 1;
+        if ("com.google.android.gm".equals(pkg)) return 2;
+        return 10;
     }
 
     private DecisionEngine.Input inputFrom(JSONObject request, String source) {

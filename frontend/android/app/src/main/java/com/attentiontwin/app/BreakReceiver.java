@@ -12,9 +12,11 @@ import android.os.Build;
 public final class BreakReceiver extends BroadcastReceiver {
     private static final String CHANNEL = "attentiontwin_breaks";
     @Override public void onReceive(Context context, Intent intent) {
+        String action = intent == null ? "" : intent.getAction();
         int held = 0;
         try (Store store = new Store(context)) { held = store.heldEvents(false).length(); }
-        if (held > 0) postDigest(context, held);
+        if ("com.attentiontwin.BREAK".equals(action) && held > 0) postDigest(context, held);
+        DndController.reconcile(context);
         FocusScheduler.scheduleNext(context);
     }
 

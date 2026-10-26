@@ -9,6 +9,7 @@ public final class BootReceiver extends BroadcastReceiver {
         String action = intent == null ? null : intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
             FocusScheduler.scheduleNext(context);
+            DndController.reconcile(context);
         }
     }
 }
