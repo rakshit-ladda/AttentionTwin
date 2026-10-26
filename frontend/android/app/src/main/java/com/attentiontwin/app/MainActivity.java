@@ -6,7 +6,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(AttentionListenerPlugin.class);
+        registerPlugin(FocusPlugin.class);
         super.onCreate(savedInstanceState);
+        FocusScheduler.scheduleNext(this);
     }
 }
